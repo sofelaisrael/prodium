@@ -17,6 +17,8 @@ function getVisitorId() {
   return id
 }
 
+const viewedPaths = new Set()
+
 export const api = {
   getArticles: (params = {}) => {
     const qs = new URLSearchParams()
@@ -31,6 +33,9 @@ export const api = {
   getCategories: () => request('/categories'),
 
   trackView: (path) => {
+    const key = `${path}_${getVisitorId()}`
+    if (viewedPaths.has(key)) return
+    viewedPaths.add(key)
     request('/analytics/view', {
       method: 'POST',
       body: JSON.stringify({ path, visitor_id: getVisitorId() })

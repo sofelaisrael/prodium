@@ -1,5 +1,27 @@
 const { supabase, supabaseAdmin } = require('./app')
 const { authenticateToken, generateToken } = require('./auth')
+const multer = require('multer')
+const path = require('path')
+const fs = require('fs')
+
+const uploadDir = path.join(__dirname, '..', 'uploads')
+if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true })
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, uploadDir),
+  filename: (req, file, cb) => cb(null, `${Date.now()}-${file.originalname.replace(/\s+/g, '_')}`)
+})
+
+const upload = multer({
+  storage,
+  limits: { fileSize: 50 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    const images = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
+    const videos = ['video/mp4', 'video/webm', 'video/ogg']
+    if ([...images, ...videos].includes(file.mimetype)) return cb(null, true)
+    cb(new Error('Only images (jpg, png, gif, webp) and videos (mp4, webm, ogg) allowed'))
+  }
+})
 
 module.exports = function (app) {
   // Login - owner only
@@ -161,7 +183,7 @@ module.exports = function (app) {
         .insert([{
           title,
           content,
-          excerpt: excerpt || content.substring(0, 200) + '...',
+          excerpt: excerpt || content.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().substring(0, 200) + '...',
           category: category || 'General',
           author_email: req.user.email,
           author_id: req.user.userId,
@@ -253,6 +275,13 @@ module.exports = function (app) {
     } catch (error) {
       res.status(500).json({ error: error.message })
     }
+  })
+
+  // Upload image or video (admin only)
+  app.post('/api/upload', authenticateToken, upload.single('file'), async (req, res) => {
+    if (!req.file) return res.status(400).json({ error: 'No file uploaded' })
+    const url = `/uploads/${req.file.filename}`
+    res.json({ url, filename: req.file.filename, mimetype: req.file.mimetype })
   })
 
   // Record a page view

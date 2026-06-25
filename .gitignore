@@ -58,6 +58,9 @@ cache/
 .yarn
 pnpm-lock.yaml
 
+# Uploaded files
+uploads/
+
 # Local env files
 .env.local
 .env.development.local

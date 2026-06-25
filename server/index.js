@@ -1,6 +1,10 @@
 #!/usr/bin/env node
 
 const { app, PORT } = require('./app')
+const path = require('path')
+
+// Serve uploaded files
+app.use('/uploads', require('express').static(path.join(__dirname, '..', 'uploads')))
 
 // Import and mount routes
 require('./routes')(app)

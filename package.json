@@ -9,7 +9,13 @@
     "dev": "node --watch server/index.js",
     "test": "echo \"Note: Install a test framework (e.g., jest, mocha) to run tests\" && exit 0"
   },
-  "keywords": ["medium", "clone", "api", "express", "supabase"],
+  "keywords": [
+    "medium",
+    "clone",
+    "api",
+    "express",
+    "supabase"
+  ],
   "author": "",
   "license": "ISC",
   "repository": {
@@ -25,8 +31,9 @@
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
+    "express-rate-limit": "^7.1.5",
     "helmet": "^8.2.0",
     "jsonwebtoken": "^9.0.3",
-    "express-rate-limit": "^7.1.5"
+    "multer": "^2.2.0"
   }
 }

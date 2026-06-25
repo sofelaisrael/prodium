@@ -11,6 +11,18 @@ async function request(path, options = {}) {
   return data
 }
 
+async function uploadRequest(path, file) {
+  const token = localStorage.getItem('token')
+  const formData = new FormData()
+  formData.append('file', file)
+  const headers = {}
+  if (token) headers['Authorization'] = `Bearer ${token}`
+  const res = await fetch(`${BASE}${path}`, { method: 'POST', headers, body: formData })
+  const data = await res.json()
+  if (!res.ok) throw new Error(data.error || 'Upload failed')
+  return data
+}
+
 export const api = {
   login: (email, password) =>
     request('/login', { method: 'POST', body: JSON.stringify({ email, password }) }),
@@ -29,4 +41,6 @@ export const api = {
     request(`/articles/${id}`, { method: 'DELETE' }),
 
   getAnalytics: () => request('/analytics/stats'),
+
+  upload: (file) => uploadRequest('/upload', file),
 }
