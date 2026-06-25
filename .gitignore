@@ -1,0 +1,65 @@
+# Dependencies
+node_modules/
+
+# Environment variables
+.env
+
+# Log files
+*.log
+
+# Runtime data
+pids
+
+# Editor directories and files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.AppleDB
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Build directories
+build/
+dist/
+
+# Temporary files
+*.tmp
+*.temp
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+Thumbs.db
+
+# Cache files
+cache/
+*.cache
+
+# Misc
+*.bak
+*.backup
+*.old
+*.orig
+
+# Package manager
+.npm
+.yarn
+pnpm-lock.yaml
+
+# Local env files
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local

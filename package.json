@@ -1,0 +1,32 @@
+{
+  "name": "prodium",
+  "version": "1.0.0",
+  "description": "A Medium Clone API built with Node.js and Express.js",
+  "main": "server/index.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node server/index.js",
+    "dev": "node --watch server/index.js",
+    "test": "echo \"Note: Install a test framework (e.g., jest, mocha) to run tests\" && exit 0"
+  },
+  "keywords": ["medium", "clone", "api", "express", "supabase"],
+  "author": "",
+  "license": "ISC",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yourusername/prodium.git"
+  },
+  "bugs": {
+    "url": "https://github.com/yourusername/prodium/issues"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.108.2",
+    "bcrypt": "^6.0.0",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "helmet": "^8.2.0",
+    "jsonwebtoken": "^9.0.3",
+    "express-rate-limit": "^7.1.5"
+  }
+}

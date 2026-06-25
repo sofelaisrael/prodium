@@ -1,0 +1,58 @@
+import { useEditor, EditorContent } from '@tiptap/react'
+import StarterKit from '@tiptap/starter-kit'
+import Placeholder from '@tiptap/extension-placeholder'
+import Underline from '@tiptap/extension-underline'
+import TextAlign from '@tiptap/extension-text-align'
+import Image from '@tiptap/extension-image'
+
+const Bar = ({ editor }) => {
+  if (!editor) return null
+  const btn = 'px-2 py-1 text-xs rounded hover:bg-gray-200'
+  const active = 'bg-gray-200 font-medium'
+  return (
+    <div className="flex flex-wrap gap-1 border-b border-gray-200 bg-gray-50 p-2">
+      <button type="button" onClick={() => editor.chain().focus().toggleBold().run()} className={`${btn} ${editor.isActive('bold') ? active : ''}`}>B</button>
+      <button type="button" onClick={() => editor.chain().focus().toggleItalic().run()} className={`${btn} ${editor.isActive('italic') ? active : ''}`}>I</button>
+      <button type="button" onClick={() => editor.chain().focus().toggleUnderline().run()} className={`${btn} ${editor.isActive('underline') ? active : ''}`}>U</button>
+      <span className="mx-1 w-px bg-gray-300" />
+      <button type="button" onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()} className={`${btn} ${editor.isActive('heading', { level: 2 }) ? active : ''}`}>H2</button>
+      <button type="button" onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()} className={`${btn} ${editor.isActive('heading', { level: 3 }) ? active : ''}`}>H3</button>
+      <span className="mx-1 w-px bg-gray-300" />
+      <button type="button" onClick={() => editor.chain().focus().toggleBulletList().run()} className={`${btn} ${editor.isActive('bulletList') ? active : ''}`}>List</button>
+      <button type="button" onClick={() => editor.chain().focus().toggleBlockquote().run()} className={`${btn} ${editor.isActive('blockquote') ? active : ''}`}>Quote</button>
+      <button type="button" onClick={() => editor.chain().focus().setHorizontalRule().run()} className={btn}>Line</button>
+      <span className="mx-1 w-px bg-gray-300" />
+      <button type="button" onClick={() => editor.chain().focus().setTextAlign('left').run()} className={`${btn} ${editor.isActive({ textAlign: 'left' }) ? active : ''}`}>L</button>
+      <button type="button" onClick={() => editor.chain().focus().setTextAlign('center').run()} className={`${btn} ${editor.isActive({ textAlign: 'center' }) ? active : ''}`}>C</button>
+      <button type="button" onClick={() => editor.chain().focus().setTextAlign('right').run()} className={`${btn} ${editor.isActive({ textAlign: 'right' }) ? active : ''}`}>R</button>
+      <span className="mx-1 w-px bg-gray-300" />
+      <button type="button" onClick={() => {
+        const url = window.prompt('Image URL:')
+        if (url) editor.chain().focus().setImage({ src: url }).run()
+      }} className={btn}>Image</button>
+      <button type="button" onClick={() => editor.chain().focus().undo().run()} disabled={!editor.can().undo()} className={btn}>Undo</button>
+      <button type="button" onClick={() => editor.chain().focus().redo().run()} disabled={!editor.can().redo()} className={btn}>Redo</button>
+    </div>
+  )
+}
+
+export default function TipTap({ content, onChange }) {
+  const editor = useEditor({
+    extensions: [
+      StarterKit,
+      Underline,
+      Placeholder.configure({ placeholder: 'Start writing...' }),
+      TextAlign.configure({ types: ['heading', 'paragraph'] }),
+      Image,
+    ],
+    content: content || '',
+    onUpdate: ({ editor }) => onChange?.(editor.getHTML()),
+  })
+
+  return (
+    <div className="rounded-lg border border-gray-200 bg-white overflow-hidden">
+      <Bar editor={editor} />
+      <EditorContent editor={editor} className="prose prose-sm max-w-none p-4 min-h-[300px] focus:outline-none [&_.tiptap]:outline-none [&_.tiptap]:min-h-[280px]" />
+    </div>
+  )
+}
