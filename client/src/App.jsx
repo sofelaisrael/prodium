@@ -8,7 +8,7 @@ export default function App() {
   return (
     <div className="flex h-screen flex-col bg-white">
       <Header />
-      <main className="flex flex-1 flex-col px-4">
+      <main className="flex flex-1 flex-col">
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/episodes" element={<Episodes />} />

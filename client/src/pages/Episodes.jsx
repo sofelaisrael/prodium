@@ -28,10 +28,10 @@ export default function Episodes() {
   }
 
   return (
-    <div className="py-10">
+    <div className="py-10 px-4 md:px-0">
       <div className="mb-10">
-        <h1 className="text-[32px] font-semibold tracking-tight text-neutral-900">Episodes</h1>
-        <p className="mt-2 text-[15px] text-neutral-500">Explore all published episodes.</p>
+        <h1 className="text-[28px] font-semibold tracking-tight text-neutral-900 md:text-[32px]">Episodes</h1>
+        <p className="mt-2 text-[14px] text-neutral-500 md:text-[15px]">Explore all published episodes.</p>
       </div>
 
       <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
