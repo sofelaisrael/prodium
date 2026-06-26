@@ -1,4 +1,6 @@
-const BASE = '/api'
+const BASE = window.location.hostname === 'localhost'
+  ? '/api'
+  : 'https://prodium-server.vercel.app/api'
 
 async function request(path, options = {}) {
   const token = localStorage.getItem('token')

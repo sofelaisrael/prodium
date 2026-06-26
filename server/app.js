@@ -13,7 +13,14 @@ const PORT = process.env.PORT || 3000
 
 // Security middleware
 app.use(helmet())
-app.use(cors())
+app.use(cors({
+  origin: [
+    'https://prodium.vercel.app',
+    'https://prodmin.vercel.app',
+    'http://localhost:5173',
+    'http://localhost:5174'
+  ]
+}))
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
 app.use(rateLimit({
