@@ -25,34 +25,51 @@ export default function Login() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50">
-      <form onSubmit={handleSubmit} className="w-full max-w-sm space-y-4">
-        <h1 className="text-center text-xl font-semibold">Prodium Admin</h1>
-        {error && <p className="text-sm text-red-600">{error}</p>}
-        <input
-          type="email"
-          placeholder="Email"
-          value={email}
-          onChange={e => setEmail(e.target.value)}
-          required
-          className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-gray-400 focus:outline-none"
-        />
-        <input
-          type="password"
-          placeholder="Password"
-          value={password}
-          onChange={e => setPassword(e.target.value)}
-          required
-          className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-gray-400 focus:outline-none"
-        />
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full rounded-lg bg-gray-900 px-3 py-2 text-sm text-white hover:bg-gray-800 disabled:opacity-50"
-        >
-          {loading ? 'Signing in...' : 'Sign in'}
-        </button>
-      </form>
+    <div className="flex min-h-screen items-center justify-center bg-white px-4">
+      <div className="w-full max-w-[320px]">
+        <div className="mb-10 text-center">
+          <h1 className="text-[22px] font-semibold tracking-tight text-neutral-900">Prodium</h1>
+          <p className="mt-2 text-[14px] text-neutral-500">Sign in to your admin account</p>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {error && (
+            <div className="rounded-lg bg-red-50 px-4 py-3 text-[13px] text-red-600">
+              {error}
+            </div>
+          )}
+
+          <div>
+            <input
+              type="email"
+              placeholder="Email"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              required
+              className="h-11 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3.5 text-[14px] text-neutral-700 placeholder:text-neutral-400 transition-colors focus:border-neutral-400 focus:bg-white focus:outline-none"
+            />
+          </div>
+
+          <div>
+            <input
+              type="password"
+              placeholder="Password"
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              required
+              className="h-11 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3.5 text-[14px] text-neutral-700 placeholder:text-neutral-400 transition-colors focus:border-neutral-400 focus:bg-white focus:outline-none"
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="h-11 w-full rounded-lg bg-neutral-900 text-[14px] font-medium text-white transition-colors hover:bg-neutral-800 disabled:opacity-50"
+          >
+            {loading ? 'Signing in...' : 'Sign in'}
+          </button>
+        </form>
+      </div>
     </div>
   )
 }

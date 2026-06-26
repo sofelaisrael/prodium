@@ -57,16 +57,20 @@ module.exports = function (app) {
     return minutes
   }
 
-  // Get all articles (supports ?search=, ?category=, ?featured=1)
+  // Get all articles (supports ?search=, ?category=, ?featured=1, ?all=true for admin)
   app.get('/api/articles', async (req, res) => {
     try {
-      const { search, category, featured } = req.query
+      const { search, category, featured, all } = req.query
+      const isAdmin = all === 'true'
 
-      let query = supabase
+      let query = (isAdmin ? supabaseAdmin : supabase)
         .from('articles')
         .select('*')
-        .eq('published', true)
         .order('created_at', { ascending: false })
+
+      if (!isAdmin) {
+        query = query.eq('published', true)
+      }
 
       if (category) {
         query = query.eq('category', category)
@@ -98,13 +102,21 @@ module.exports = function (app) {
     }
   })
 
-  // Get all categories with article counts
+  // Get all categories with article counts (supports ?all=true for admin)
   app.get('/api/categories', async (req, res) => {
     try {
-      const { data, error } = await supabase
+      const { all } = req.query
+      const isAdmin = all === 'true'
+
+      let query = (isAdmin ? supabaseAdmin : supabase)
         .from('articles')
         .select('category')
-        .eq('published', true)
+
+      if (!isAdmin) {
+        query = query.eq('published', true)
+      }
+
+      const { data, error } = await query
 
       if (error) {
         return res.status(500).json({ error: error.message })
@@ -150,7 +162,7 @@ module.exports = function (app) {
   // Create article (owner only)
   app.post('/api/articles', authenticateToken, async (req, res) => {
     try {
-      const { title, content, excerpt, category } = req.body
+      const { title, content, excerpt, category, published } = req.body
 
       if (!title || !content) {
         return res.status(400).json({ error: 'Title and content are required' })
@@ -165,7 +177,7 @@ module.exports = function (app) {
           category: category || 'General',
           author_email: req.user.email,
           author_id: req.user.userId,
-          published: true
+          published: published !== false
         }])
         .select()
 
@@ -183,7 +195,7 @@ module.exports = function (app) {
   // Update article (owner only)
   app.put('/api/articles/:id', authenticateToken, async (req, res) => {
     try {
-      const { title, content, excerpt, category } = req.body
+      const { title, content, excerpt, category, published } = req.body
 
       const { data: existing, error: fetchError } = await supabaseAdmin
         .from('articles')
@@ -206,6 +218,7 @@ module.exports = function (app) {
           content: content || existing.content,
           excerpt: excerpt || existing.excerpt,
           category: category || existing.category,
+          published: published !== undefined ? published : existing.published,
           updated_at: new Date().toISOString()
         })
         .eq('id', req.params.id)

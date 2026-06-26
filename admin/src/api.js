@@ -29,7 +29,7 @@ export const api = {
   login: (email, password) =>
     request('/login', { method: 'POST', body: JSON.stringify({ email, password }) }),
 
-  getArticles: () => request('/articles'),
+  getArticles: () => request('/articles?all=true'),
 
   getArticle: (id) => request(`/articles/${id}`),
 
@@ -43,6 +43,8 @@ export const api = {
     request(`/articles/${id}`, { method: 'DELETE' }),
 
   getAnalytics: () => request('/analytics/stats'),
+
+  getCategories: () => request('/categories?all=true'),
 
   upload: (file) => uploadRequest('/upload', file),
 }
