@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
-import { api } from '../api'
+import { api, trackView } from '../api'
 
 export default function Home() {
   const tracked = useRef(false)
@@ -13,7 +13,7 @@ export default function Home() {
   useEffect(() => {
     if (tracked.current) return
     tracked.current = true
-    api.trackView('/')
+    trackView('/')
   }, [])
 
   const load = () => {

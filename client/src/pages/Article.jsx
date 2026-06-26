@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { api } from '../api'
+import { api, trackView } from '../api'
 
 export default function Article() {
   const { id } = useParams()
@@ -8,7 +8,7 @@ export default function Article() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    api.trackView(`/articles/${id}`)
+    trackView(`/articles/${id}`)
   }, [id])
 
   useEffect(() => {
