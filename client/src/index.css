@@ -1,9 +1,55 @@
 @import 'tailwindcss';
 
+@font-face {
+  font-family: 'Bebas Neue';
+  src: url('./assets/BebasNeue-Regular.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Novamono';
+  src: url('./assets/NovaMono-Regular.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Nunito Sans';
+  src: url('./assets/NunitoSans-VariableFont_YTLC,opsz,wdth,wght.ttf') format('truetype');
+  font-weight: 200 1000;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Nunito Sans';
+  src: url('./assets/NunitoSans-VariableFont_YTLC,opsz,wdth,wght.ttf') format('truetype');
+  font-weight: 200 1000;
+  font-style: italic;
+}
+
+@theme {
+  --font-bebas: 'Bebas Neue', sans-serif;
+  --font-nunito: 'Nunito Sans', sans-serif;
+  --font-novamono: 'Novamono', monospace;
+}
+
 @layer base {
   body {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+  }
+
+  .font-bebas {
+    font-family: var(--font-bebas);
+  }
+
+  .font-nunito {
+    font-family: var(--font-nunito);
+  }
+
+  .font-novamono {
+    font-family: var(--font-novamono);
   }
 
   .prose h2 {

@@ -6,9 +6,9 @@ import Episode from './pages/Episode'
 
 export default function App() {
   return (
-    <div className="min-h-screen bg-white">
+    <div className="flex h-screen flex-col bg-white">
       <Header />
-      <main className="mx-auto max-w-2xl px-4">
+      <main className="flex flex-1 flex-col px-4">
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/episodes" element={<Episodes />} />
