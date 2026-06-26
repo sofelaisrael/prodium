@@ -43,28 +43,33 @@ export default function Dashboard() {
 
       {analytics && (
         <div>
-          <h2 className="mb-3 text-sm font-medium text-gray-500">Page views</h2>
+          <h2 className="mb-3 text-sm font-medium text-gray-500">Page views (last 30 days)</h2>
           <div className="grid grid-cols-2 gap-4 mb-4">
             <div className="rounded-lg border border-gray-200 bg-white p-4">
               <p className="text-2xl font-semibold">{analytics.total}</p>
               <p className="text-sm text-gray-500">Total views</p>
             </div>
             <div className="rounded-lg border border-gray-200 bg-white p-4">
-              <p className="text-2xl font-semibold">{analytics.uniqueVisitors}</p>
+              <p className="text-2xl font-semibold">{analytics.totalUnique}</p>
               <p className="text-sm text-gray-500">Unique visitors</p>
             </div>
           </div>
-          <div className="rounded-lg border border-gray-200 bg-white">
-            {analytics.byPath.map(p => (
-              <div key={p.path} className="flex items-center justify-between px-4 py-2 border-b border-gray-100 last:border-0">
-                <span className="text-sm text-gray-700">{p.path}</span>
-                <span className="text-sm font-medium">{p.count}</span>
+          {analytics.paths.length > 0 && (
+            <>
+              <h3 className="mb-2 text-sm font-medium text-gray-500">Top pages</h3>
+              <div className="rounded-lg border border-gray-200 bg-white">
+                {analytics.paths.map(p => (
+                  <div key={p.path} className="flex items-center justify-between px-4 py-2 border-b border-gray-100 last:border-0">
+                    <span className="text-sm text-gray-700">{p.path}</span>
+                    <div className="flex gap-4 text-sm text-gray-500">
+                      <span>{p.count} views</span>
+                      <span>{p.count_unique} unique</span>
+                    </div>
+                  </div>
+                ))}
               </div>
-            ))}
-            {analytics.byPath.length === 0 && (
-              <p className="text-sm text-gray-400 p-4">No views yet.</p>
-            )}
-          </div>
+            </>
+          )}
         </div>
       )}
 

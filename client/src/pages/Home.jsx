@@ -1,20 +1,13 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { api, trackView } from '../api'
+import { api } from '../api'
 
 export default function Home() {
-  const tracked = useRef(false)
   const [articles, setArticles] = useState([])
   const [categories, setCategories] = useState([])
   const [search, setSearch] = useState('')
   const [category, setCategory] = useState('')
   const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    if (tracked.current) return
-    tracked.current = true
-    trackView('/')
-  }, [])
 
   const load = () => {
     setLoading(true)

@@ -1,27 +1,5 @@
 const { supabase, supabaseAdmin } = require('./app')
 const { authenticateToken, generateToken } = require('./auth')
-const multer = require('multer')
-const path = require('path')
-const fs = require('fs')
-
-const uploadDir = path.join(__dirname, '..', 'uploads')
-if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true })
-
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, uploadDir),
-  filename: (req, file, cb) => cb(null, `${Date.now()}-${file.originalname.replace(/\s+/g, '_')}`)
-})
-
-const upload = multer({
-  storage,
-  limits: { fileSize: 50 * 1024 * 1024 },
-  fileFilter: (req, file, cb) => {
-    const images = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
-    const videos = ['video/mp4', 'video/webm', 'video/ogg']
-    if ([...images, ...videos].includes(file.mimetype)) return cb(null, true)
-    cb(new Error('Only images (jpg, png, gif, webp) and videos (mp4, webm, ogg) allowed'))
-  }
-})
 
 module.exports = function (app) {
   // Login - owner only
@@ -277,77 +255,68 @@ module.exports = function (app) {
     }
   })
 
-  // Upload image or video (admin only)
-  app.post('/api/upload', authenticateToken, upload.single('file'), async (req, res) => {
-    if (!req.file) return res.status(400).json({ error: 'No file uploaded' })
-    const url = `/uploads/${req.file.filename}`
-    res.json({ url, filename: req.file.filename, mimetype: req.file.mimetype })
-  })
-
-  // Record a page view (dedup: one view per visitor per path)
-  app.post('/api/analytics/view', async (req, res) => {
+  // Upload image or video to Supabase Storage (admin only)
+  app.post('/api/upload', authenticateToken, async (req, res) => {
     try {
-      const { path, visitor_id } = req.body
+      const chunks = []
+      for await (const chunk of req) chunks.push(chunk)
+      const buffer = Buffer.concat(chunks)
 
-      if (!path) {
-        return res.status(400).json({ error: 'Path is required' })
-      }
+      const ext = (req.headers['x-file-ext'] || 'bin').replace(/[^a-z0-9.]/gi, '')
+      const filename = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
+      const mimetype = req.headers['content-type'] || 'application/octet-stream'
 
-      if (!visitor_id) {
-        return res.status(200).json({ message: 'Skipped (no visitor_id)' })
-      }
-
-      const { data: existing } = await supabase
-        .from('page_views')
-        .select('id')
-        .eq('path', path)
-        .eq('visitor_id', visitor_id)
-        .maybeSingle()
-
-      if (existing) {
-        return res.status(200).json({ message: 'Already counted' })
-      }
-
-      const { error } = await supabase
-        .from('page_views')
-        .insert([{ path, visitor_id }])
+      const { error } = await supabaseAdmin.storage
+        .from('uploads')
+        .upload(filename, buffer, { contentType: mimetype })
 
       if (error) {
         return res.status(500).json({ error: error.message })
       }
 
-      res.status(201).json({ message: 'View recorded' })
+      const { data: urlData } = supabaseAdmin.storage
+        .from('uploads')
+        .getPublicUrl(filename)
+
+      res.json({ url: urlData.publicUrl, filename, mimetype })
 
     } catch (error) {
       res.status(500).json({ error: error.message })
     }
   })
 
-  // Get analytics stats (admin only)
+  // GoatCounter analytics proxy (admin only)
   app.get('/api/analytics/stats', authenticateToken, async (req, res) => {
     try {
-      const { data, error } = await supabaseAdmin
-        .from('page_views')
-        .select('path, visitor_id')
+      const token = process.env.GOATCOUNTER_TOKEN
+      const baseUrl = process.env.GOATCOUNTER_URL
 
-      if (error) {
-        return res.status(500).json({ error: error.message })
+      if (!token || !baseUrl) {
+        return res.status(500).json({ error: 'GoatCounter not configured' })
       }
 
-      const views = data || []
-      const total = views.length
-      const uniqueVisitors = new Set(views.filter(v => v.visitor_id).map(v => v.visitor_id)).size
+      const now = new Date()
+      const start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 30).toISOString()
+      const end = now.toISOString()
 
-      const byPath = {}
-      for (const v of views) {
-        byPath[v.path] = (byPath[v.path] || 0) + 1
+      const headers = {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
       }
 
-      const pathBreakdown = Object.entries(byPath)
-        .map(([path, count]) => ({ path, count }))
-        .sort((a, b) => b.count - a.count)
+      const [totalRes, hitsRes] = await Promise.all([
+        fetch(`${baseUrl}/api/v0/stats/total?start=${start}&end=${end}`, { headers }),
+        fetch(`${baseUrl}/api/v0/stats/hits?start=${start}&end=${end}`, { headers })
+      ])
 
-      res.json({ total, uniqueVisitors, byPath: pathBreakdown })
+      const total = await totalRes.json()
+      const hits = await hitsRes.json()
+
+      res.json({
+        total: total.total ?? 0,
+        totalUnique: total.total_unique ?? 0,
+        paths: hits.hits || []
+      })
 
     } catch (error) {
       res.status(500).json({ error: error.message })

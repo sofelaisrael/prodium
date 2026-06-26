@@ -1,32 +1,11 @@
 const BASE = '/api'
 
-const viewedPaths = new Set()
-
-function getVisitorId() {
-  let id = localStorage.getItem('visitor_id')
-  if (!id) {
-    id = crypto.randomUUID()
-    localStorage.setItem('visitor_id', id)
-  }
-  return id
-}
-
 async function request(path, options = {}) {
   const headers = { 'Content-Type': 'application/json', ...options.headers }
   const res = await fetch(`${BASE}${path}`, { ...options, headers })
   const data = await res.json()
   if (!res.ok) throw new Error(data.error || 'Request failed')
   return data
-}
-
-export function trackView(path) {
-  const key = `${path}_${getVisitorId()}`
-  if (viewedPaths.has(key)) return
-  viewedPaths.add(key)
-  request('/analytics/view', {
-    method: 'POST',
-    body: JSON.stringify({ path, visitor_id: getVisitorId() })
-  }).catch(() => {})
 }
 
 export const api = {

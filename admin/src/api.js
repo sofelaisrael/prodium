@@ -13,11 +13,13 @@ async function request(path, options = {}) {
 
 async function uploadRequest(path, file) {
   const token = localStorage.getItem('token')
-  const formData = new FormData()
-  formData.append('file', file)
-  const headers = {}
+  const ext = file.name.split('.').pop()
+  const headers = {
+    'Content-Type': file.type,
+    'X-File-Ext': ext,
+  }
   if (token) headers['Authorization'] = `Bearer ${token}`
-  const res = await fetch(`${BASE}${path}`, { method: 'POST', headers, body: formData })
+  const res = await fetch(`${BASE}${path}`, { method: 'POST', headers, body: file })
   const data = await res.json()
   if (!res.ok) throw new Error(data.error || 'Upload failed')
   return data
