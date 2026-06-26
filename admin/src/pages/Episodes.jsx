@@ -9,7 +9,7 @@ const filters = [
   { key: 'draft', label: 'Drafts' },
 ]
 
-export default function Articles() {
+export default function Episodes() {
   const [articles, setArticles] = useState([])
   const [loading, setLoading] = useState(true)
   const [activeFilter, setActiveFilter] = useState('all')
@@ -31,7 +31,7 @@ export default function Articles() {
     load()
   }
 
-  const deleteArticle = async () => {
+  const deleteEpisode = async () => {
     if (!deleteId) return
     await api.deleteArticle(deleteId)
     setDeleteId(null)
@@ -49,18 +49,18 @@ export default function Articles() {
     <div className="space-y-6">
       <div className="flex items-end justify-between">
         <div>
-          <h1 className="text-[28px] font-semibold tracking-tight text-neutral-900">Articles</h1>
-          <p className="mt-1 text-[15px] text-neutral-500">{articles.length} total articles</p>
+          <h1 className="text-[28px] font-semibold tracking-tight text-neutral-900">Episodes</h1>
+          <p className="mt-1 text-[15px] text-neutral-500">{articles.length} total episodes</p>
         </div>
         <Link
-          to="/articles/new"
+          to="/episodes/new"
           className="inline-flex items-center gap-2 rounded-full bg-neutral-900 px-4 py-2 text-[14px] font-medium text-white transition-colors hover:bg-neutral-800"
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M12 5v14" />
             <path d="M5 12h14" />
           </svg>
-          New article
+          New episode
         </Link>
       </div>
 
@@ -106,7 +106,7 @@ export default function Articles() {
       ) : filtered.length === 0 ? (
         <div className="rounded-xl border border-dashed border-neutral-200 py-16 text-center">
           <p className="text-[14px] text-neutral-400">
-            {search ? 'No articles match your search.' : 'No articles yet.'}
+            {search ? 'No episodes match your search.' : 'No episodes yet.'}
           </p>
         </div>
       ) : (
@@ -115,7 +115,7 @@ export default function Articles() {
             <div key={a.id} className="flex items-center gap-4 px-5 py-4 transition-colors hover:bg-neutral-50">
               <div className="min-w-0 flex-1">
                 <Link
-                  to={`/articles/${a.id}/edit`}
+                  to={`/episodes/${a.id}/edit`}
                   className="text-[15px] font-medium text-neutral-900 hover:underline"
                 >
                   {a.title}
@@ -138,7 +138,7 @@ export default function Articles() {
                 </button>
 
                 <Link
-                  to={`/articles/${a.id}/edit`}
+                  to={`/episodes/${a.id}/edit`}
                   className="rounded-lg p-2 text-neutral-400 transition-colors hover:bg-neutral-100 hover:text-neutral-700"
                 >
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -166,9 +166,9 @@ export default function Articles() {
       <ConfirmModal
         open={!!deleteId}
         onClose={() => setDeleteId(null)}
-        onConfirm={deleteArticle}
-        title="Delete article"
-        message="Are you sure you want to delete this article? This action cannot be undone."
+        onConfirm={deleteEpisode}
+        title="Delete episode"
+        message="Are you sure you want to delete this episode? This action cannot be undone."
       />
     </div>
   )

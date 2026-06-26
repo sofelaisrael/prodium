@@ -3,8 +3,8 @@ import { useAuth } from './AuthContext'
 import Layout from './components/Layout'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
-import Articles from './pages/Articles'
-import ArticleForm from './pages/ArticleForm'
+import Episodes from './pages/Episodes'
+import EpisodeForm from './pages/EpisodeForm'
 
 function PrivateRoute({ children }) {
   const { user, loading } = useAuth()
@@ -23,9 +23,9 @@ export default function App() {
     <Routes>
       <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
       <Route path="/" element={<PrivateRoute><Layout><Dashboard /></Layout></PrivateRoute>} />
-      <Route path="/articles" element={<PrivateRoute><Layout><Articles /></Layout></PrivateRoute>} />
-      <Route path="/articles/:id/edit" element={<PrivateRoute><Layout><ArticleForm /></Layout></PrivateRoute>} />
-      <Route path="/articles/new" element={<PrivateRoute><Layout><ArticleForm /></Layout></PrivateRoute>} />
+      <Route path="/episodes" element={<PrivateRoute><Layout><Episodes /></Layout></PrivateRoute>} />
+      <Route path="/episodes/:id/edit" element={<PrivateRoute><Layout><EpisodeForm /></Layout></PrivateRoute>} />
+      <Route path="/episodes/new" element={<PrivateRoute><Layout><EpisodeForm /></Layout></PrivateRoute>} />
       <Route path="*" element={<Navigate to="/" />} />
     </Routes>
   )

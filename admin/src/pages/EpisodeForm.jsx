@@ -4,7 +4,7 @@ import { api } from '../api'
 import TipTap from '../components/TipTap'
 import Modal from '../components/Modal'
 
-export default function ArticleForm() {
+export default function EpisodeForm() {
   const { id } = useParams()
   const navigate = useNavigate()
   const isNew = !id || id === 'new'
@@ -32,7 +32,7 @@ export default function ArticleForm() {
           setContent(a.content || '')
           setPublished(a.published || false)
         })
-        .catch(() => navigate('/articles'))
+        .catch(() => navigate('/episodes'))
         .finally(() => setLoading(false))
     }
   }, [id, isNew, navigate])
@@ -63,7 +63,7 @@ export default function ArticleForm() {
       const body = { title, category, content, published: publishState }
       if (isNew) {
         const created = await api.createArticle(body)
-        navigate(`/articles/${created.id}/edit`)
+        navigate(`/episodes/${created.id}/edit`)
       } else {
         await api.updateArticle(id, body)
         setPublished(publishState)
@@ -87,13 +87,13 @@ export default function ArticleForm() {
     <div className="mx-auto max-w-[740px]">
       <div className="mb-8 flex items-center justify-between">
         <button
-          onClick={() => navigate('/articles')}
+          onClick={() => navigate('/episodes')}
           className="inline-flex items-center gap-1.5 text-[14px] text-neutral-500 transition-colors hover:text-neutral-900"
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="m15 18-6-6 6-6" />
           </svg>
-          Articles
+          Episodes
         </button>
 
         <div className="flex items-center gap-2">
@@ -171,7 +171,7 @@ export default function ArticleForm() {
             className="mt-20 mr-8 w-[300px] rounded-xl border border-neutral-100 bg-white p-5 shadow-xl"
             onClick={e => e.stopPropagation()}
           >
-            <h3 className="mb-4 text-[14px] font-semibold text-neutral-900">Article settings</h3>
+            <h3 className="mb-4 text-[14px] font-semibold text-neutral-900">Episode settings</h3>
 
             <label className="mb-4 block" ref={categoryRef}>
               <span className="mb-1.5 block text-[13px] text-neutral-500">Category</span>

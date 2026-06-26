@@ -4,87 +4,102 @@ import { api } from '../api'
 
 export default function Home() {
   const [articles, setArticles] = useState([])
-  const [categories, setCategories] = useState([])
-  const [search, setSearch] = useState('')
-  const [category, setCategory] = useState('')
   const [loading, setLoading] = useState(true)
 
-  const load = () => {
-    setLoading(true)
-    const params = {}
-    if (search) params.search = search
-    if (category) params.category = category
-    api.getArticles(params).then(setArticles).catch(() => {}).finally(() => setLoading(false))
-  }
-
-  useEffect(() => { load() }, [category])
   useEffect(() => {
-    api.getCategories().then(setCategories).catch(() => {})
+    api.getArticles({ featured: '1' })
+      .then(setArticles)
+      .catch(() => {})
+      .finally(() => setLoading(false))
   }, [])
 
-  const handleSearch = (e) => {
-    e.preventDefault()
-    load()
-  }
-
   return (
-    <div className="space-y-8">
-      <form onSubmit={handleSearch} className="flex gap-2">
-        <input
-          type="text"
-          placeholder="Search articles..."
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          className="flex-1 rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-gray-400 focus:outline-none"
-        />
-        <button type="submit" className="rounded-lg bg-gray-900 px-4 py-2 text-sm text-white hover:bg-gray-800">
-          Search
-        </button>
-      </form>
-
-      {categories.length > 0 && (
-        <div className="flex flex-wrap gap-2">
-          <button
-            onClick={() => setCategory('')}
-            className={`rounded-full px-3 py-1 text-xs ${!category ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
-          >
-            All
-          </button>
-          {categories.map(c => (
-            <button
-              key={c.name}
-              onClick={() => setCategory(c.name)}
-              className={`rounded-full px-3 py-1 text-xs ${category === c.name ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
-            >
-              {c.name} ({c.count})
-            </button>
-          ))}
-        </div>
-      )}
-
-      {loading ? (
-        <p className="text-sm text-gray-400">Loading...</p>
-      ) : articles.length === 0 ? (
-        <p className="text-sm text-gray-400">No articles found.</p>
-      ) : (
-        <div className="space-y-4">
-          {articles.map(a => (
+    <div>
+      <section className="py-20 md:py-32">
+        <div className="mx-auto max-w-2xl text-center">
+          <h1 className="text-[40px] font-semibold tracking-tight text-neutral-900 md:text-[56px]">
+            Stories, ideas, and<br />perspectives
+          </h1>
+          <p className="mt-5 text-[18px] leading-relaxed text-neutral-500">
+            A space for thoughtful writing on technology, design, and the future of the web.
+          </p>
+          <div className="mt-8 flex items-center justify-center gap-4">
             <Link
-              key={a.id}
-              to={`/articles/${a.id}`}
-              className="block rounded-lg border border-gray-200 bg-white p-5 hover:border-gray-300"
+              to="/episodes"
+              className="rounded-full bg-neutral-900 px-6 py-3 text-[15px] font-medium text-white transition-colors hover:bg-neutral-800"
             >
-              <h2 className="text-lg font-semibold">{a.title}</h2>
-              {a.excerpt && <p className="mt-1 text-sm text-gray-500 line-clamp-2">{a.excerpt}</p>}
-              <div className="mt-2 flex items-center gap-3 text-xs text-gray-400">
-                <span>{a.category || 'General'}</span>
-                <span>{a.reading_time} min read</span>
-                <span>{new Date(a.created_at).toLocaleDateString()}</span>
-              </div>
+              Start listening
             </Link>
-          ))}
+          </div>
         </div>
-      )}
+      </section>
+
+      <section className="border-t border-neutral-100 py-16">
+        <div className="mx-auto max-w-2xl">
+          <div className="mb-8 flex items-end justify-between">
+            <h2 className="text-[13px] font-medium uppercase tracking-wider text-neutral-400">Featured</h2>
+            <Link to="/episodes" className="text-[13px] text-neutral-500 hover:text-neutral-900">View all</Link>
+          </div>
+
+          {loading ? (
+            <div className="py-12 text-center text-[14px] text-neutral-400">Loading...</div>
+          ) : articles.length === 0 ? (
+            <div className="py-12 text-center text-[14px] text-neutral-400">No episodes yet.</div>
+          ) : (
+            <div className="space-y-8">
+              {articles.slice(0, 3).map((a, i) => (
+                <Link
+                  key={a.id}
+                  to={`/episodes/${a.id}`}
+                  className={`group block ${i === 0 ? '' : 'border-t border-neutral-100 pt-8'}`}
+                >
+                  <div className="flex items-center gap-2 text-[13px] text-neutral-400">
+                    <span>{a.category || 'General'}</span>
+                    <span>·</span>
+                    <span>{a.reading_time} min read</span>
+                  </div>
+                  <h3 className={`mt-2 font-semibold text-neutral-900 group-hover:underline ${
+                    i === 0 ? 'text-[24px]' : 'text-[20px]'
+                  }`}>
+                    {a.title}
+                  </h3>
+                  {a.excerpt && (
+                    <p className="mt-2 text-[15px] leading-relaxed text-neutral-500 line-clamp-2">
+                      {a.excerpt}
+                    </p>
+                  )}
+                  <div className="mt-3 flex items-center gap-2 text-[13px] text-neutral-400">
+                    <span>{new Date(a.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
+
+      <section className="border-t border-neutral-100 py-16">
+        <div className="mx-auto max-w-2xl text-center">
+          <h2 className="text-[24px] font-semibold tracking-tight text-neutral-900">Stay updated</h2>
+          <p className="mt-2 text-[15px] text-neutral-500">Get the latest episodes delivered to your inbox.</p>
+          <div className="mt-6 flex max-w-md mx-auto gap-2">
+            <input
+              type="email"
+              placeholder="your@email.com"
+              className="flex-1 rounded-full border border-neutral-200 bg-white px-4 py-2.5 text-[14px] text-neutral-700 placeholder:text-neutral-400 focus:border-neutral-400 focus:outline-none"
+            />
+            <button className="rounded-full bg-neutral-900 px-5 py-2.5 text-[14px] font-medium text-white transition-colors hover:bg-neutral-800">
+              Subscribe
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <footer className="border-t border-neutral-100 py-8">
+        <div className="mx-auto max-w-2xl text-center text-[13px] text-neutral-400">
+          &copy; {new Date().getFullYear()} Prodium. All rights reserved.
+        </div>
+      </footer>
     </div>
   )
 }

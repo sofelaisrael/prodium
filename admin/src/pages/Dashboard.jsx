@@ -33,20 +33,20 @@ export default function Dashboard() {
           <p className="mt-1 text-[15px] text-neutral-500">Welcome back. Here's what's happening.</p>
         </div>
         <Link
-          to="/articles/new"
+          to="/episodes/new"
           className="inline-flex items-center gap-2 rounded-full bg-neutral-900 px-4 py-2 text-[14px] font-medium text-white transition-colors hover:bg-neutral-800"
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M12 5v14" />
             <path d="M5 12h14" />
           </svg>
-          New article
+          New episode
         </Link>
       </div>
 
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
         {[
-          { label: 'Total articles', value: articles.length, color: 'text-neutral-900' },
+          { label: 'Total episodes', value: articles.length, color: 'text-neutral-900' },
           { label: 'Published', value: published, color: 'text-emerald-600' },
           { label: 'Drafts', value: drafts, color: 'text-neutral-500' },
           { label: 'Total views', value: analytics?.total ?? '—', color: 'text-neutral-900' },
@@ -77,14 +77,14 @@ export default function Dashboard() {
 
       <section>
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-[13px] font-medium uppercase tracking-wider text-neutral-400">Recent articles</h2>
-          <Link to="/articles" className="text-[13px] text-neutral-500 hover:text-neutral-900">View all</Link>
+          <h2 className="text-[13px] font-medium uppercase tracking-wider text-neutral-400">Recent episodes</h2>
+          <Link to="/episodes" className="text-[13px] text-neutral-500 hover:text-neutral-900">View all</Link>
         </div>
         {articles.length === 0 ? (
           <div className="rounded-xl border border-dashed border-neutral-200 py-12 text-center">
-            <p className="text-[14px] text-neutral-400">No articles yet.</p>
-            <Link to="/articles/new" className="mt-3 inline-block text-[14px] text-neutral-900 underline underline-offset-4 hover:text-neutral-600">
-              Write your first article
+            <p className="text-[14px] text-neutral-400">No episodes yet.</p>
+            <Link to="/episodes/new" className="mt-3 inline-block text-[14px] text-neutral-900 underline underline-offset-4 hover:text-neutral-600">
+              Create your first episode
             </Link>
           </div>
         ) : (
@@ -92,7 +92,7 @@ export default function Dashboard() {
             {articles.slice(0, 5).map(a => (
               <Link
                 key={a.id}
-                to={`/articles/${a.id}/edit`}
+                to={`/episodes/${a.id}/edit`}
                 className="flex items-center justify-between px-5 py-4 transition-colors hover:bg-neutral-50"
               >
                 <div className="min-w-0 flex-1">
