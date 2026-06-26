@@ -284,7 +284,7 @@ module.exports = function (app) {
     res.json({ url, filename: req.file.filename, mimetype: req.file.mimetype })
   })
 
-  // Record a page view
+  // Record a page view (dedup: one view per visitor per path)
   app.post('/api/analytics/view', async (req, res) => {
     try {
       const { path, visitor_id } = req.body
@@ -293,9 +293,24 @@ module.exports = function (app) {
         return res.status(400).json({ error: 'Path is required' })
       }
 
+      if (!visitor_id) {
+        return res.status(200).json({ message: 'Skipped (no visitor_id)' })
+      }
+
+      const { data: existing } = await supabase
+        .from('page_views')
+        .select('id')
+        .eq('path', path)
+        .eq('visitor_id', visitor_id)
+        .maybeSingle()
+
+      if (existing) {
+        return res.status(200).json({ message: 'Already counted' })
+      }
+
       const { error } = await supabase
         .from('page_views')
-        .insert([{ path, visitor_id: visitor_id || null }])
+        .insert([{ path, visitor_id }])
 
       if (error) {
         return res.status(500).json({ error: error.message })

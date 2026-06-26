@@ -1,12 +1,6 @@
 const BASE = '/api'
 
-async function request(path, options = {}) {
-  const headers = { 'Content-Type': 'application/json', ...options.headers }
-  const res = await fetch(`${BASE}${path}`, { ...options, headers })
-  const data = await res.json()
-  if (!res.ok) throw new Error(data.error || 'Request failed')
-  return data
-}
+let viewedPaths = new Set()
 
 function getVisitorId() {
   let id = localStorage.getItem('visitor_id')
@@ -17,7 +11,13 @@ function getVisitorId() {
   return id
 }
 
-const viewedPaths = new Set()
+async function request(path, options = {}) {
+  const headers = { 'Content-Type': 'application/json', ...options.headers }
+  const res = await fetch(`${BASE}${path}`, { ...options, headers })
+  const data = await res.json()
+  if (!res.ok) throw new Error(data.error || 'Request failed')
+  return data
+}
 
 export const api = {
   getArticles: (params = {}) => {
@@ -32,7 +32,23 @@ export const api = {
 
   getCategories: () => request('/categories'),
 
-  trackView: (path) => {
+  createComment: (articleId, { content, reader_profile_id }) =>
+    request(`/articles/${articleId}/comments`, {
+      method: 'POST',
+      body: JSON.stringify({ content, reader_profile_id })
+    }),
+
+  createReaderProfile: (display_name) =>
+    request('/reader-profile', {
+      method: 'POST',
+      body: JSON.stringify({ display_name })
+    })
+}
+
+export function setupViewTracking() {
+  viewedPaths = new Set()
+
+  export const trackView = (path) => {
     const key = `${path}_${getVisitorId()}`
     if (viewedPaths.has(key)) return
     viewedPaths.add(key)
