@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
+import { useParams, Link } from 'react-router-dom'
 import { api } from '../api'
 import ConfirmModal from '../components/ConfirmModal'
 
@@ -10,7 +10,9 @@ const filters = [
 ]
 
 export default function Episodes() {
-  const [articles, setArticles] = useState([])
+  const { projectId } = useParams()
+  const [project, setProject] = useState(null)
+  const [episodes, setEpisodes] = useState([])
   const [loading, setLoading] = useState(true)
   const [activeFilter, setActiveFilter] = useState('all')
   const [search, setSearch] = useState('')
@@ -18,30 +20,30 @@ export default function Episodes() {
 
   const load = () => {
     setLoading(true)
-    api.getArticles()
-      .then(setArticles)
-      .catch(() => {})
-      .finally(() => setLoading(false))
+    Promise.all([
+      api.getProject(projectId).then(setProject).catch(() => {}),
+      api.getProjectEpisodes(projectId).then(setEpisodes).catch(() => {})
+    ]).finally(() => setLoading(false))
   }
 
-  useEffect(load, [])
+  useEffect(load, [projectId])
 
-  const togglePublish = async (article) => {
-    await api.updateArticle(article.id, { published: !article.published })
+  const togglePublish = async (episode) => {
+    await api.updateEpisode(episode.id, { published: !episode.published })
     load()
   }
 
   const deleteEpisode = async () => {
     if (!deleteId) return
-    await api.deleteArticle(deleteId)
+    await api.deleteEpisode(deleteId)
     setDeleteId(null)
     load()
   }
 
-  const filtered = articles.filter(a => {
-    if (activeFilter === 'published' && !a.published) return false
-    if (activeFilter === 'draft' && a.published) return false
-    if (search && !a.title.toLowerCase().includes(search.toLowerCase())) return false
+  const filtered = episodes.filter(e => {
+    if (activeFilter === 'published' && !e.published) return false
+    if (activeFilter === 'draft' && e.published) return false
+    if (search && !e.title.toLowerCase().includes(search.toLowerCase())) return false
     return true
   })
 
@@ -49,11 +51,17 @@ export default function Episodes() {
     <div className="space-y-6">
       <div className="flex items-end justify-between">
         <div>
-          <h1 className="text-[28px] font-semibold tracking-tight text-neutral-900">Episodes</h1>
-          <p className="mt-1 text-[15px] text-neutral-500">{articles.length} total episodes</p>
+          <Link to="/projects" className="inline-flex items-center gap-1.5 text-[13px] text-neutral-500 hover:text-neutral-900">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="m15 18-6-6 6-6" />
+            </svg>
+            Projects
+          </Link>
+          <h1 className="mt-2 text-[28px] font-semibold tracking-tight text-neutral-900">{project?.title || 'Project'}</h1>
+          <p className="mt-1 text-[15px] text-neutral-500">{episodes.length} episodes</p>
         </div>
         <Link
-          to="/episodes/new"
+          to={`/projects/${projectId}/episodes/new`}
           className="inline-flex items-center gap-2 rounded-full bg-neutral-900 px-4 py-2 text-[14px] font-medium text-white transition-colors hover:bg-neutral-800"
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -77,9 +85,9 @@ export default function Episodes() {
           >
             {f.label}
             <span className="ml-1.5 text-neutral-300">
-              {f.key === 'all' && articles.length}
-              {f.key === 'published' && articles.filter(a => a.published).length}
-              {f.key === 'draft' && articles.filter(a => !a.published).length}
+              {f.key === 'all' && episodes.length}
+              {f.key === 'published' && episodes.filter(e => e.published).length}
+              {f.key === 'draft' && episodes.filter(e => !e.published).length}
             </span>
           </button>
         ))}
@@ -111,34 +119,34 @@ export default function Episodes() {
         </div>
       ) : (
         <div className="divide-y divide-neutral-100 rounded-xl border border-neutral-100 bg-white">
-          {filtered.map(a => (
-            <div key={a.id} className="flex items-center gap-4 px-5 py-4 transition-colors hover:bg-neutral-50">
+          {filtered.map(e => (
+            <div key={e.id} className="flex items-center gap-4 px-5 py-4 transition-colors hover:bg-neutral-50">
               <div className="min-w-0 flex-1">
                 <Link
-                  to={`/episodes/${a.id}/edit`}
+                  to={`/episodes/${e.id}/edit`}
                   className="text-[15px] font-medium text-neutral-900 hover:underline"
                 >
-                  {a.title}
+                  {e.title}
                 </Link>
                 <p className="mt-0.5 text-[13px] text-neutral-400">
-                  {a.category || 'Uncategorized'} · {new Date(a.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                  {e.reading_time} min read · {new Date(e.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                 </p>
               </div>
 
               <div className="flex items-center gap-2">
                 <button
-                  onClick={() => togglePublish(a)}
+                  onClick={() => togglePublish(e)}
                   className={`rounded-full px-3 py-1 text-[12px] font-medium transition-colors ${
-                    a.published
+                    e.published
                       ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
                       : 'bg-neutral-100 text-neutral-500 hover:bg-neutral-200'
                   }`}
                 >
-                  {a.published ? 'Published' : 'Draft'}
+                  {e.published ? 'Published' : 'Draft'}
                 </button>
 
                 <Link
-                  to={`/episodes/${a.id}/edit`}
+                  to={`/episodes/${e.id}/edit`}
                   className="rounded-lg p-2 text-neutral-400 transition-colors hover:bg-neutral-100 hover:text-neutral-700"
                 >
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -148,7 +156,7 @@ export default function Episodes() {
                 </Link>
 
                 <button
-                  onClick={() => setDeleteId(a.id)}
+                  onClick={() => setDeleteId(e.id)}
                   className="rounded-lg p-2 text-neutral-400 transition-colors hover:bg-red-50 hover:text-red-600"
                 >
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

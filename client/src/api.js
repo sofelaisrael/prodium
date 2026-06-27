@@ -5,21 +5,27 @@ const BASE = window.location.hostname === 'localhost'
 async function request(path, options = {}) {
   const headers = { 'Content-Type': 'application/json', ...options.headers }
   const res = await fetch(`${BASE}${path}`, { ...options, headers })
-  const data = await res.json()
-  if (!res.ok) throw new Error(data.error || 'Request failed')
+  const text = await res.text()
+  let data
+  try { data = text ? JSON.parse(text) : {} } catch { data = {} }
+  if (!res.ok) throw new Error(data.error || `Request failed (${res.status})`)
   return data
 }
 
 export const api = {
-  getArticles: (params = {}) => {
+  getProjects: (params = {}) => {
     const qs = new URLSearchParams()
     if (params.search) qs.set('search', params.search)
     if (params.category) qs.set('category', params.category)
     const query = qs.toString()
-    return request(`/articles${query ? `?${query}` : ''}`)
+    return request(`/projects${query ? `?${query}` : ''}`)
   },
 
-  getArticle: (id) => request(`/articles/${id}`),
+  getProject: (id) => request(`/projects/${id}`),
 
   getCategories: () => request('/categories'),
+
+  getProjectEpisodes: (projectId) => request(`/projects/${projectId}/episodes`),
+
+  getEpisode: (id) => request(`/episodes/${id}`),
 }

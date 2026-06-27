@@ -12,19 +12,19 @@ export default function Home() {
             style={{ backgroundImage: `url(${banner})` }}
           />
           <div className="absolute inset-0 bg-black/50" />
-          <div className="relative mx-auto w-full px-4 text-left">
+          <div className="relative mx-auto w-full px-4 md:text-center">
             <h1 className="font-bebas text-[40px] uppercase leading-none tracking-[0.04em] text-white md:text-[64px] lg:text-[128px]">
               Hi there! I'm Sofela
             </h1>
-            <p className="font-novamono mt-6 w-full text-[13px] leading-relaxed text-white/80 md:w-1/2 md:text-[16px]">
+            <p className="font-novamono mt-6 w-full text-[13px] leading-relaxed text-white/80 md:mx-auto md:w-1/2 md:text-[16px]">
               This where i document my journey into Filmmaking, visual storytelling and the craft of turning ideas into stories. I started this as a way to hold myself accountable to the process. If you're here, you're probably figuring something out too. Welcome
             </p>
             <div className="mt-8">
               <Link
-                to="/episodes"
+                to="/projects"
                 className="inline-flex items-center gap-2 bg-white px-10 py-3 text-[15px] font-medium text-black"
               >
-                Read Episode
+                Browse Projects
                 <img src={lineIcon} alt="" className="h-2 w-auto" />
               </Link>
             </div>

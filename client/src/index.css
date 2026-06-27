@@ -91,9 +91,22 @@
     animation: content-out 0.35s cubic-bezier(0.7, 0, 0.3, 1) both;
   }
 
+  html {
+    scrollbar-width: none;
+  }
+
+  html::-webkit-scrollbar {
+    display: none;
+  }
+
   body {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    scrollbar-width: none;
+  }
+
+  body::-webkit-scrollbar {
+    display: none;
   }
 
   .font-bebas {
@@ -202,5 +215,32 @@
     background: none;
     padding: 0;
     font-size: 0.875em;
+  }
+
+  .episode-line {
+    position: relative;
+  }
+
+  .episode-line::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 1px;
+    height: 45%;
+    background-color: rgb(229 229 229);
+  }
+
+  .episode-line::after {
+    content: attr(data-project);
+    position: absolute;
+    left: -2px;
+    top: 50%;
+    transform: translateY(-50%) rotate(-90deg);
+    font-size: 11px;
+    letter-spacing: 0.05em;
+    color: rgb(163 163 163);
+    font-family: var(--font-novamono);
+    white-space: nowrap;
   }
 }

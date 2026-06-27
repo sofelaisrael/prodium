@@ -3,6 +3,8 @@ import { useAuth } from './AuthContext'
 import Layout from './components/Layout'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
+import Projects from './pages/Projects'
+import ProjectForm from './pages/ProjectForm'
 import Episodes from './pages/Episodes'
 import EpisodeForm from './pages/EpisodeForm'
 
@@ -23,9 +25,12 @@ export default function App() {
     <Routes>
       <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
       <Route path="/" element={<PrivateRoute><Layout><Dashboard /></Layout></PrivateRoute>} />
-      <Route path="/episodes" element={<PrivateRoute><Layout><Episodes /></Layout></PrivateRoute>} />
+      <Route path="/projects" element={<PrivateRoute><Layout><Projects /></Layout></PrivateRoute>} />
+      <Route path="/projects/new" element={<PrivateRoute><Layout><ProjectForm /></Layout></PrivateRoute>} />
+      <Route path="/projects/:id/edit" element={<PrivateRoute><Layout><ProjectForm /></Layout></PrivateRoute>} />
+      <Route path="/projects/:projectId/episodes" element={<PrivateRoute><Layout><Episodes /></Layout></PrivateRoute>} />
+      <Route path="/projects/:projectId/episodes/new" element={<PrivateRoute><Layout><EpisodeForm /></Layout></PrivateRoute>} />
       <Route path="/episodes/:id/edit" element={<PrivateRoute><Layout><EpisodeForm /></Layout></PrivateRoute>} />
-      <Route path="/episodes/new" element={<PrivateRoute><Layout><EpisodeForm /></Layout></PrivateRoute>} />
       <Route path="*" element={<Navigate to="/" />} />
     </Routes>
   )

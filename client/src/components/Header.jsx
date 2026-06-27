@@ -31,7 +31,7 @@ export default function Header() {
 
   const menuItems = [
     { label: 'Home', path: '/' },
-    { label: 'Episodes', path: '/episodes' },
+    { label: 'Projects', path: '/projects' },
   ]
 
   const strips = Array.from({ length: 7 })
@@ -50,8 +50,8 @@ export default function Header() {
           <Link to="/" className={linkClass('/')}>
             Home
           </Link>
-          <Link to="/episodes" className={linkClass('/episodes')}>
-            Episodes
+          <Link to="/projects" className={linkClass('/projects')}>
+            Projects
           </Link>
         </nav>
 

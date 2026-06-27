@@ -1,9 +1,22 @@
 @import "tailwindcss";
 
 @layer base {
+  html {
+    scrollbar-width: none;
+  }
+
+  html::-webkit-scrollbar {
+    display: none;
+  }
+
   body {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    scrollbar-width: none;
+  }
+
+  body::-webkit-scrollbar {
+    display: none;
   }
 
   /* Prose styles for TipTap editor */
@@ -108,5 +121,74 @@
     background: none;
     padding: 0;
     font-size: 0.875em;
+  }
+
+  .ProseMirror-selectednode {
+    overflow: visible !important;
+  }
+
+  .ProseMirror-selectednode > * {
+    overflow: visible !important;
+  }
+
+  /* Resizable node view handles */
+  .tiptap-resize-container {
+    position: relative;
+  }
+
+  .tiptap-resize-wrapper {
+    position: relative;
+    display: inline-block;
+  }
+
+  [data-resize-handle] {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 12px;
+    height: 40px;
+    cursor: col-resize;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 20;
+    opacity: 0;
+    transition: opacity 0.15s;
+    background: transparent;
+    border-radius: 4px;
+  }
+
+  [data-resize-handle]::after {
+    content: '';
+    display: block;
+    width: 3px;
+    height: 24px;
+    border-radius: 2px;
+    background-color: #a3a3a3;
+  }
+
+  .tiptap-resize-wrapper:hover [data-resize-handle],
+  [data-resize-handle]:hover {
+    opacity: 1;
+  }
+
+  [data-resize-handle]:hover::after {
+    background-color: #525252;
+  }
+
+  [data-resize-handle="left"] {
+    left: -6px;
+  }
+
+  [data-resize-handle="right"] {
+    right: -6px;
+  }
+
+  .tiptap-is-resizing [data-resize-handle] {
+    opacity: 1;
+  }
+
+  .tiptap-is-resizing [data-resize-handle]::after {
+    background-color: #3b82f6;
   }
 }

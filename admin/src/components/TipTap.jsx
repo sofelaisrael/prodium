@@ -1,211 +1,119 @@
-import { useRef, useState, useCallback, useEffect } from 'react'
+import { useRef, useState } from 'react'
 import { useEditor, EditorContent, ReactNodeViewRenderer, NodeViewWrapper } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import Placeholder from '@tiptap/extension-placeholder'
 import Underline from '@tiptap/extension-underline'
 import TextAlign from '@tiptap/extension-text-align'
-import Image from '@tiptap/extension-image'
 import { Node, mergeAttributes } from '@tiptap/core'
 import { api } from '../api'
 
-const ResizableVideo = Node.create({
-  name: 'resizableVideo',
-  group: 'block',
-  atom: true,
-  draggable: true,
+function useResizable(node, updateAttributes) {
+  const ref = useRef(null)
 
-  addAttributes() {
-    return {
-      src: { default: null },
-      controls: { default: true },
-      width: { default: '100%' },
-    }
-  },
-
-  parseHTML() {
-    return [{ tag: 'video' }]
-  },
-
-  renderHTML({ HTMLAttributes }) {
-    return ['video', mergeAttributes(HTMLAttributes, { controls: 'true', class: 'rounded-lg' })]
-  },
-
-  addCommands() {
-    return {
-      setVideo: (attrs) => ({ commands }) => {
-        return commands.insertContent({ type: 'resizableVideo', attrs })
-      },
-    }
-  },
-
-  addNodeView() {
-    return ReactNodeViewRenderer(ResizableVideoComponent)
-  },
-})
-
-function ResizableVideoComponent({ node, updateAttributes }) {
-  const [isResizing, setIsResizing] = useState(false)
-  const startX = useRef(0)
-  const startWidth = useRef(0)
-  const containerRef = useRef(null)
-
-  const handleMouseDown = useCallback((e) => {
+  const onPointerDown = (e) => {
     e.preventDefault()
     e.stopPropagation()
-    setIsResizing(true)
-    startX.current = e.clientX
-    startWidth.current = containerRef.current?.offsetWidth || 0
 
-    const handleMouseMove = (e) => {
-      const dx = e.clientX - startX.current
-      const containerParent = containerRef.current?.parentElement
-      const maxWidth = containerParent?.offsetWidth || 700
-      const newWidth = Math.min(Math.max(startWidth.current + dx, 100), maxWidth)
-      const widthPercent = Math.round((newWidth / maxWidth) * 100)
-      updateAttributes({ width: `${widthPercent}%` })
+    const el = ref.current
+    if (!el) return
+
+    const startX = e.clientX
+    const startWidth = el.offsetWidth
+    const maxWidth = el.parentElement?.offsetWidth || 700
+
+    const onMove = (e) => {
+      const dx = e.clientX - startX
+      const newWidth = Math.min(Math.max(startWidth + dx, 80), maxWidth)
+      const pct = Math.round((newWidth / maxWidth) * 100)
+      updateAttributes({ width: `${pct}%` })
     }
 
-    const handleMouseUp = () => {
-      setIsResizing(false)
-      document.removeEventListener('mousemove', handleMouseMove)
-      document.removeEventListener('mouseup', handleMouseUp)
+    const onUp = () => {
+      document.removeEventListener('pointermove', onMove)
+      document.removeEventListener('pointerup', onUp)
       document.body.style.cursor = ''
       document.body.style.userSelect = ''
     }
 
-    document.addEventListener('mousemove', handleMouseMove)
-    document.addEventListener('mouseup', handleMouseUp)
+    document.addEventListener('pointermove', onMove)
+    document.addEventListener('pointerup', onUp)
     document.body.style.cursor = 'col-resize'
     document.body.style.userSelect = 'none'
-  }, [updateAttributes])
+  }
+
+  const Handle = () => (
+    <div
+      contentEditable={false}
+      onPointerDown={onPointerDown}
+      className="absolute right-0 top-0 bottom-0 w-4 cursor-col-resize flex items-center justify-center z-20 opacity-0 group-hover:opacity-100 transition-opacity"
+    >
+      <div className="w-[3px] h-8 rounded-full bg-neutral-400 hover:bg-blue-500" />
+    </div>
+  )
+
+  return { ref, Handle }
+}
+
+function MediaNodeView({ node, updateAttributes, extension }) {
+  const { ref, Handle } = useResizable(node, updateAttributes)
+  const isVideo = extension.name === 'resizableVideo'
 
   return (
     <NodeViewWrapper>
-      <div
-        ref={containerRef}
-        className="group relative my-4"
-        style={{ width: node.attrs.width }}
-      >
-        <video
-          src={node.attrs.src}
-          controls
-          className="w-full rounded-lg"
-        />
-        <div
-          onMouseDown={handleMouseDown}
-          className={`absolute right-0 top-0 bottom-0 w-2 cursor-col-resize opacity-0 group-hover:opacity-100 transition-opacity ${
-            isResizing ? 'opacity-100' : ''
-          }`}
-        >
-          <div className={`absolute right-0 top-1/2 -translate-y-1/2 w-1 h-8 rounded-full transition-colors ${
-            isResizing ? 'bg-blue-500' : 'bg-neutral-400'
-          }`} />
-        </div>
+      <div className="relative group" style={{ width: node.attrs.width || '100%' }}>
+        {isVideo ? (
+          <video ref={ref} src={node.attrs.src} controls className="w-full rounded-lg" />
+        ) : (
+          <img ref={ref} src={node.attrs.src} alt={node.attrs.alt || ''} className="w-full rounded-lg" />
+        )}
+        <Handle />
       </div>
     </NodeViewWrapper>
   )
 }
 
-const ResizableImage = Node.create({
-  name: 'resizableImage',
-  group: 'block',
-  atom: true,
-  draggable: true,
+function createMediaNode(name, tag, attrs) {
+  return Node.create({
+    name,
+    group: 'block',
+    atom: true,
+    draggable: true,
 
-  addAttributes() {
-    return {
-      src: { default: null },
-      alt: { default: null },
-      width: { default: '100%' },
-    }
-  },
+    addAttributes() {
+      return {
+        src: { default: null },
+        alt: { default: null },
+        width: { default: '100%' },
+        ...attrs,
+      }
+    },
 
-  parseHTML() {
-    return [{ tag: 'img' }]
-  },
+    parseHTML() {
+      return [{ tag }]
+    },
 
-  renderHTML({ HTMLAttributes }) {
-    return ['img', mergeAttributes(HTMLAttributes, { class: 'rounded-lg' })]
-  },
+    renderHTML({ HTMLAttributes }) {
+      return [tag, mergeAttributes(HTMLAttributes, { class: 'rounded-lg' })]
+    },
 
-  addCommands() {
-    return {
-      setImage: (attrs) => ({ commands }) => {
-        return commands.insertContent({ type: 'resizableImage', attrs })
-      },
-    }
-  },
+    addCommands() {
+      return {
+        [`set${name.charAt(0).toUpperCase() + name.slice(1)}`]: (at) => ({ commands }) => {
+          return commands.insertContent({ type: name, attrs: at })
+        },
+      }
+    },
 
-  addNodeView() {
-    return ReactNodeViewRenderer(ResizableImageComponent)
-  },
-})
-
-function ResizableImageComponent({ node, updateAttributes }) {
-  const [isResizing, setIsResizing] = useState(false)
-  const startX = useRef(0)
-  const startWidth = useRef(0)
-  const containerRef = useRef(null)
-
-  const handleMouseDown = useCallback((e) => {
-    e.preventDefault()
-    e.stopPropagation()
-    setIsResizing(true)
-    startX.current = e.clientX
-    startWidth.current = containerRef.current?.offsetWidth || 0
-
-    const handleMouseMove = (e) => {
-      const dx = e.clientX - startX.current
-      const containerParent = containerRef.current?.parentElement
-      const maxWidth = containerParent?.offsetWidth || 700
-      const newWidth = Math.min(Math.max(startWidth.current + dx, 100), maxWidth)
-      const widthPercent = Math.round((newWidth / maxWidth) * 100)
-      updateAttributes({ width: `${widthPercent}%` })
-    }
-
-    const handleMouseUp = () => {
-      setIsResizing(false)
-      document.removeEventListener('mousemove', handleMouseMove)
-      document.removeEventListener('mouseup', handleMouseUp)
-      document.body.style.cursor = ''
-      document.body.style.userSelect = ''
-    }
-
-    document.addEventListener('mousemove', handleMouseMove)
-    document.addEventListener('mouseup', handleMouseUp)
-    document.body.style.cursor = 'col-resize'
-    document.body.style.userSelect = 'none'
-  }, [updateAttributes])
-
-  return (
-    <NodeViewWrapper>
-      <div
-        ref={containerRef}
-        className="group relative my-4"
-        style={{ width: node.attrs.width }}
-      >
-        <img
-          src={node.attrs.src}
-          alt={node.attrs.alt || ''}
-          className="w-full rounded-lg"
-          draggable={false}
-        />
-        <div
-          onMouseDown={handleMouseDown}
-          className={`absolute right-0 top-0 bottom-0 w-2 cursor-col-resize opacity-0 group-hover:opacity-100 transition-opacity ${
-            isResizing ? 'opacity-100' : ''
-          }`}
-        >
-          <div className={`absolute right-0 top-1/2 -translate-y-1/2 w-1 h-8 rounded-full transition-colors ${
-            isResizing ? 'bg-blue-500' : 'bg-neutral-400'
-          }`} />
-        </div>
-      </div>
-    </NodeViewWrapper>
-  )
+    addNodeView() {
+      return ReactNodeViewRenderer(MediaNodeView)
+    },
+  })
 }
 
-const Bar = ({ editor, imageRef, videoRef, onError }) => {
+const ResizableImage = createMediaNode('resizableImage', 'img', { alt: { default: null } })
+const ResizableVideo = createMediaNode('resizableVideo', 'video', { controls: { default: true } })
+
+const Bar = ({ editor, imageRef, videoRef, onError, uploading, setUploading, setProgress }) => {
   if (!editor) return null
 
   const btn = 'p-1.5 rounded-md text-neutral-400 hover:bg-neutral-100 hover:text-neutral-700 transition-colors'
@@ -213,17 +121,28 @@ const Bar = ({ editor, imageRef, videoRef, onError }) => {
 
   const handleUpload = async (file, type) => {
     if (!file) return
+    setUploading(type)
+    setProgress(0)
     try {
-      const result = await api.upload(file)
+      const result = await api.upload(file, (p) => setProgress(p))
       if (type === 'image') {
-        editor.chain().focus().setImage({ src: result.url }).run()
+        editor.chain().focus().setResizableImage({ src: result.url }).run()
       } else {
-        editor.chain().focus().setVideo({ src: result.url }).run()
+        editor.chain().focus().setResizableVideo({ src: result.url }).run()
       }
     } catch (err) {
       onError?.(err.message)
+    } finally {
+      setUploading(null)
+      setProgress(0)
     }
   }
+
+  const Spinner = () => (
+    <svg className="animate-spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+    </svg>
+  )
 
   return (
     <div className="flex flex-wrap items-center gap-0.5 border-b border-neutral-100 bg-white px-2 py-1.5 sticky top-0 z-10">
@@ -283,18 +202,22 @@ const Bar = ({ editor, imageRef, videoRef, onError }) => {
 
       <div className="mx-1.5 h-5 w-px bg-neutral-100" />
 
-      <button type="button" onClick={() => imageRef.current?.click()} className={btn} title="Insert image">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
-          <circle cx="9" cy="9" r="2" />
-          <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
-        </svg>
+      <button type="button" onClick={() => imageRef.current?.click()} disabled={!!uploading} className={`${btn} disabled:opacity-40`} title="Insert image">
+        {uploading === 'image' ? <Spinner /> : (
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
+            <circle cx="9" cy="9" r="2" />
+            <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
+          </svg>
+        )}
       </button>
-      <button type="button" onClick={() => videoRef.current?.click()} className={btn} title="Insert video">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="m16 13 5.223 3.482a.5.5 0 0 0 .777-.416V7.87a.5.5 0 0 0-.752-.432L16 10.5" />
-          <rect x="2" y="6" width="14" height="12" rx="2" />
-        </svg>
+      <button type="button" onClick={() => videoRef.current?.click()} disabled={!!uploading} className={`${btn} disabled:opacity-40`} title="Insert video">
+        {uploading === 'video' ? <Spinner /> : (
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="m16 13 5.223 3.482a.5.5 0 0 0 .777-.416V7.87a.5.5 0 0 0-.752-.432L16 10.5" />
+            <rect x="2" y="6" width="14" height="12" rx="2" />
+          </svg>
+        )}
       </button>
 
       <div className="mx-1.5 h-5 w-px bg-neutral-100" />
@@ -321,6 +244,8 @@ const Bar = ({ editor, imageRef, videoRef, onError }) => {
 export default function TipTap({ content, onChange, onError }) {
   const imageRef = useRef(null)
   const videoRef = useRef(null)
+  const [uploading, setUploading] = useState(null)
+  const [progress, setProgress] = useState(0)
 
   const editor = useEditor({
     extensions: [
@@ -329,7 +254,6 @@ export default function TipTap({ content, onChange, onError }) {
       Placeholder.configure({ placeholder: 'Start writing...' }),
       TextAlign.configure({ types: ['heading', 'paragraph'] }),
       ResizableImage,
-      Image,
       ResizableVideo,
     ],
     content: content || '',
@@ -337,12 +261,22 @@ export default function TipTap({ content, onChange, onError }) {
   })
 
   return (
-    <div className="overflow-hidden rounded-xl border border-neutral-100 bg-white">
-      <Bar editor={editor} imageRef={imageRef} videoRef={videoRef} onError={onError} />
-      <EditorContent
-        editor={editor}
-        className="prose prose-neutral prose-lg max-w-none px-4 py-8 min-h-[500px] focus:outline-none [&_.tiptap]:outline-none [&_.tiptap]:min-h-[480px] [&_.tiptap]:text-neutral-800"
-      />
+    <div className="rounded-xl border border-neutral-100 bg-white">
+      <Bar editor={editor} imageRef={imageRef} videoRef={videoRef} onError={onError} uploading={uploading} setUploading={setUploading} setProgress={setProgress} />
+      <div className="relative">
+        {uploading && (
+          <div className="absolute top-0 left-0 right-0 z-10 h-0.5 bg-neutral-100">
+            <div
+              className="h-full bg-neutral-900 rounded-full transition-all duration-300 ease-out"
+              style={{ width: `${progress}%` }}
+            />
+          </div>
+        )}
+        <EditorContent
+          editor={editor}
+          className="prose prose-neutral prose-lg max-w-none px-4 py-8 min-h-[500px] focus:outline-none [&_.tiptap]:outline-none [&_.tiptap]:min-h-[480px] [&_.tiptap]:text-neutral-800 [&_.tiptap]:overflow-visible [&_img]:!max-w-full [&_video]:!max-w-full"
+        />
+      </div>
     </div>
   )
 }

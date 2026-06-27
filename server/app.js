@@ -21,7 +21,11 @@ app.use(cors({
     'http://localhost:5174'
   ]
 }))
-app.use(express.json())
+// Skip JSON parsing for file uploads
+app.use((req, res, next) => {
+  if (req.path === '/api/upload') return next()
+  express.json({ limit: '10mb' })(req, res, next)
+})
 app.use(express.urlencoded({ extended: true }))
 app.use(rateLimit({
   windowMs: 15 * 60 * 1000,
