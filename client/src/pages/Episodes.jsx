@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../api'
+import Loader from '../components/Loader'
 
 export default function Episodes() {
   const [articles, setArticles] = useState([])
@@ -28,7 +29,7 @@ export default function Episodes() {
   }
 
   return (
-    <div className="py-10 px-4 md:px-0">
+    <div className="animate-fade-in py-10 px-4 md:px-0">
       <div className="mb-10">
         <h1 className="text-[28px] font-semibold tracking-tight text-neutral-900 md:text-[32px]">Episodes</h1>
         <p className="mt-2 text-[14px] text-neutral-500 md:text-[15px]">Explore all published episodes.</p>
@@ -79,7 +80,7 @@ export default function Episodes() {
       </div>
 
       {loading ? (
-        <div className="py-20 text-center text-[14px] text-neutral-400">Loading...</div>
+        <Loader />
       ) : articles.length === 0 ? (
         <div className="rounded-xl border border-dashed border-neutral-200 py-20 text-center">
           <p className="text-[14px] text-neutral-400">No episodes found.</p>

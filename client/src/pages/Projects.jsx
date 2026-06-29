@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { api } from '../api'
 import Blob from '../components/Blob'
 import lineIcon from '../assets/line.svg'
+import Loader from '../components/Loader'
 
 function extractFirstImage(html) {
   if (!html) return null
@@ -36,7 +37,7 @@ export default function Projects() {
   }
 
   return (
-    <div className="py-12 px-5 md:mx-20">
+    <div className="animate-fade-in py-12 px-5 md:mx-20">
       <div className="mb-12">
         <h1 className="font-bebas text-[48px] uppercase leading-none tracking-[0.04em] text-neutral-900 md:text-[72px]">
           Projects
@@ -89,7 +90,7 @@ export default function Projects() {
       </div>
 
       {loading ? (
-        <div className="py-20 text-center text-[14px] text-neutral-400">Loading...</div>
+        <Loader />
       ) : projects.length === 0 ? (
         <div className="rounded-xl border border-dashed border-neutral-200 py-20 text-center">
           <p className="text-[14px] text-neutral-400">No projects found.</p>

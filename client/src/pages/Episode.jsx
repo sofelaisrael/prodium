@@ -2,12 +2,15 @@ import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { api } from '../api'
 import lineIcon from '../assets/line.svg'
+import useLazyVideos from '../components/LazyVideo'
+import Loader from '../components/Loader'
 
 export default function Episode() {
   const { id } = useParams()
   const [episode, setEpisode] = useState(null)
   const [prevNext, setPrevNext] = useState({ prev: null, next: null })
   const [loading, setLoading] = useState(true)
+  const contentRef = useLazyVideos()
 
   useEffect(() => {
     setLoading(true)
@@ -30,7 +33,7 @@ export default function Episode() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-32">
-        <div className="text-[14px] text-neutral-400">Loading...</div>
+        <Loader />
       </div>
     )
   }
@@ -47,7 +50,7 @@ export default function Episode() {
   }
 
   return (
-    <div className="md:mx-20 py-6">
+    <div className="animate-fade-in md:mx-20 py-6">
       <Link to={`/projects/${episode.project_id}`} className="inline-flex items-center gap-1.5 text-[13px] text-neutral-500 hover:text-neutral-900">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="m15 18-6-6 6-6" />
@@ -67,7 +70,7 @@ export default function Episode() {
       </header>
 
       <div className="rounded-2xl border-10 border-black p-6 md:p-10">
-        <div className="prose prose-neutral prose-lg font-novamono max-w-none" dangerouslySetInnerHTML={{ __html: episode.content }} />
+        <div ref={contentRef} className="prose prose-neutral prose-lg font-novamono max-w-none" dangerouslySetInnerHTML={{ __html: episode.content }} />
       </div>
 
       <div className="flex items-center gap-5 mt-8 py-4">
