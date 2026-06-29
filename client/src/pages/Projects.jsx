@@ -53,7 +53,7 @@ export default function Projects() {
             placeholder="Search projects..."
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="h-10 w-full rounded-lg border border-neutral-200 bg-white pl-9 pr-4 text-[14px] text-neutral-700 placeholder:text-neutral-400 focus:border-neutral-400 focus:outline-none"
+            className="h-10 w-full border border-neutral-200 bg-white pl-9 pr-4 text-[14px] text-neutral-700 placeholder:text-neutral-400 focus:border-neutral-400 focus:outline-none"
           />
         </form>
 
@@ -61,7 +61,7 @@ export default function Projects() {
           <div className="flex flex-wrap gap-2">
             <button
               onClick={() => setCategory('')}
-              className={`rounded-full px-4 py-1.5 text-[13px] font-medium transition-colors ${
+              className={`px-4 py-1.5 text-[13px] font-medium transition-colors ${
                 !category
                   ? 'bg-neutral-900 text-white'
                   : 'border border-neutral-200 text-neutral-500 hover:border-neutral-400 hover:text-neutral-900'
@@ -73,7 +73,7 @@ export default function Projects() {
               <button
                 key={c.name}
                 onClick={() => setCategory(c.name)}
-                className={`rounded-full px-4 py-1.5 text-[13px] font-medium transition-colors ${
+                className={`px-4 py-1.5 text-[13px] font-medium transition-colors ${
                   category === c.name
                     ? 'bg-neutral-900 text-white'
                     : 'border border-neutral-200 text-neutral-500 hover:border-neutral-400 hover:text-neutral-900'

@@ -52,7 +52,7 @@ export const api = {
     request(`/projects/${id}`, { method: 'DELETE' }),
 
   getProjectEpisodes: (projectId) => request(`/projects/${projectId}/episodes?all=true`),
-  getEpisode: (id) => request(`/episodes/${id}`),
+  getEpisode: (id) => request(`/episodes/${id}?all=true`),
   createEpisode: (projectId, episode) =>
     request(`/projects/${projectId}/episodes`, { method: 'POST', body: JSON.stringify(episode) }),
   updateEpisode: (id, episode) =>

@@ -155,24 +155,26 @@ module.exports = function (app) {
     }
   })
 
-  // Get single project (with episodes)
+  // Get single project (with published episodes only)
   app.get('/api/projects/:id', async (req, res) => {
     try {
       const { data, error } = await supabase
         .from('projects')
         .select('*')
         .eq('id', req.params.id)
+        .eq('published', true)
         .single()
 
       if (error) {
         return res.status(404).json({ error: 'Project not found' })
       }
 
-      // Get episodes for this project
+      // Get published episodes for this project
       const { data: episodes, error: epError } = await supabase
         .from('episodes')
         .select('*')
         .eq('project_id', req.params.id)
+        .eq('published', true)
         .order('created_at', { ascending: true })
 
       if (epError) {
@@ -335,14 +337,22 @@ module.exports = function (app) {
     }
   })
 
-  // Get single episode
+  // Get single episode (published only, or all with ?all=true for admin)
   app.get('/api/episodes/:id', async (req, res) => {
     try {
-      const { data, error } = await supabase
+      const { all } = req.query
+      const isAdmin = all === 'true'
+
+      let query = (isAdmin ? supabaseAdmin : supabase)
         .from('episodes')
         .select('*')
         .eq('id', req.params.id)
-        .single()
+
+      if (!isAdmin) {
+        query = query.eq('published', true)
+      }
+
+      const { data, error } = await query.single()
 
       if (error) {
         return res.status(404).json({ error: 'Episode not found' })
@@ -420,15 +430,22 @@ module.exports = function (app) {
         return res.status(403).json({ error: 'Not authorized to update this episode' })
       }
 
-      const { data, error } = await supabaseAdmin
-        .from('episodes')
-        .update({
+      const update = {
           title: title || existing.title,
           content: content || existing.content,
           excerpt: excerpt !== undefined ? excerpt : existing.excerpt,
           published: published !== undefined ? published : existing.published,
           updated_at: new Date().toISOString()
-        })
+        }
+
+        // When publishing a draft, set created_at to now so it sorts after existing published episodes
+        if (published === true && existing.published === false) {
+          update.created_at = new Date().toISOString()
+        }
+
+      const { data, error } = await supabaseAdmin
+        .from('episodes')
+        .update(update)
         .eq('id', req.params.id)
         .select()
 
