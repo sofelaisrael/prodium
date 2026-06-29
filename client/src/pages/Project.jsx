@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { api } from '../api'
 import lineIcon from '../assets/line.svg'
+import Blob from '../components/Blob'
 
 function extractFirstImage(html) {
   if (!html) return null
@@ -81,15 +82,18 @@ export default function Project() {
                 className={`${i === 0 ? 'col-span-1 pl-4 episode-line' : ''}`}
               >
                 <div className="overflow-hidden bg-white">
-                  <div className={`relative bg-neutral-100 rounded-md border overflow-hidden ${i === 0 ? 'aspect-[21/15]' : 'aspect-[16/1]'}`}>
+                  <div className={`relative bg-neutral-100 rounded-md border overflow-hidden ${i === 0 ? 'aspect-[21/15]' : 'aspect-[16/10]'}`}>
                     {thumb ? (
                       <img src={thumb} alt="" className="h-full w-full object-cover" />
                     ) : (
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <span className="font-bebas text-[48px] text-neutral-200 uppercase tracking-wider">{String(i + 1).padStart(2, '0')}</span>
-                      </div>
+                      <Blob id={e.id} className="h-full w-full" />
                     )}
                     <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
+                    {!thumb && (
+                      <div className="absolute top-3 left-3">
+                        <span className="font-bebas text-[24px] text-white uppercase tracking-wider">{String(i + 1).padStart(2, '0')}</span>
+                      </div>
+                    )}
                     <div className="absolute bottom-3 left-3">
                       <span className="inline-block bg-white/90 px-2.5 py-1 text-[11px] font-medium text-neutral-700 backdrop-blur-sm">
                         {e.reading_time} min read

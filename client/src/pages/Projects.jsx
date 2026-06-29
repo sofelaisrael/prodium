@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../api'
+import Blob from '../components/Blob'
+import lineIcon from '../assets/line.svg'
 
 function extractFirstImage(html) {
   if (!html) return null
@@ -102,8 +104,9 @@ export default function Projects() {
             >
               <div className="overflow-hidden rounded-2xl border border-neutral-100 bg-white transition-shadow hover:shadow-lg">
                 <div className={`relative bg-neutral-100 ${i === 0 ? 'aspect-[21/9]' : 'aspect-[16/10]'}`}>
+                  <Blob id={p.id} className="h-full w-full" size="sm" />
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <span className="font-bebas text-[64px] text-neutral-200 uppercase tracking-wider">{p.title?.charAt(0)}</span>
+                    <span className="font-bebas text-[48px] text-white uppercase tracking-wider">{p.title?.charAt(0)}</span>
                   </div>
                   <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
                 </div>
@@ -123,10 +126,7 @@ export default function Projects() {
                   )}
                   <div className="mt-4 inline-flex items-center gap-1.5 text-[13px] font-medium text-neutral-900">
                     Read
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M5 12h14" />
-                      <path d="m12 5 7 7-7 7" />
-                    </svg>
+                    <img src={lineIcon} alt="" className="h-1.5 w-auto" />
                   </div>
                 </div>
               </div>

@@ -67,7 +67,7 @@ export default function Episode() {
       </header>
 
       <div className="rounded-2xl border-10 border-black p-6 md:p-10">
-        <div className="prose prose-neutral prose-lg max-w-none" dangerouslySetInnerHTML={{ __html: episode.content }} />
+        <div className="prose prose-neutral prose-lg font-novamono max-w-none" dangerouslySetInnerHTML={{ __html: episode.content }} />
       </div>
 
       <div className="flex items-center gap-5 mt-8 py-4">
@@ -88,7 +88,7 @@ export default function Episode() {
               <img src={lineIcon} alt="" className="h-2 invert w-auto" />
             </Link>
           ) : (
-            <span className="flex items-center gap-2  border border-neutral-200 px-10 py-2.5 text-[13px] text-neutral-300 cursor-not-allowed">
+            <span className="flex items-center gap-2  border border-neutral-200 bg-gray-600 px-10 py-2.5 text-[13px] text-neutral-300 cursor-not-allowed">
               Read Next Episode
               <img src={lineIcon} alt="" className="h-2 w-auto invert opacity-40" />
             </span>
