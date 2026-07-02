@@ -1,5 +1,5 @@
-const { app } = require('../server/app')
-require('../server/routes')(app)
+const { app } = require('./server/app')
+require('./server/routes')(app)
 
 app.use((err, req, res, next) => {
   console.error('Unhandled error:', err)

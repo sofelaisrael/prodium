@@ -10,22 +10,25 @@ import { api } from '../api'
 function useResizable(node, updateAttributes) {
   const ref = useRef(null)
 
-  const onPointerDown = (e) => {
+  const startResize = (e) => {
     e.preventDefault()
     e.stopPropagation()
 
     const el = ref.current
     if (!el) return
 
-    const startX = e.clientX
-    const startWidth = el.offsetWidth
-    const maxWidth = el.parentElement?.offsetWidth || 700
+    const parent = el.parentElement
+    if (!parent) return
 
-    const onMove = (e) => {
-      const dx = e.clientX - startX
-      const newWidth = Math.min(Math.max(startWidth + dx, 80), maxWidth)
-      const pct = Math.round((newWidth / maxWidth) * 100)
-      updateAttributes({ width: `${pct}%` })
+    const startClientX = e.clientX
+    const containerW = parent.offsetWidth
+    const startPctW = parseFloat(node.attrs.width) || 100
+
+    const onMove = (ev) => {
+      const dx = ev.clientX - startClientX
+      const deltaPct = (dx / containerW) * 100
+      const newPctW = Math.max(10, Math.min(100, startPctW + deltaPct))
+      updateAttributes({ width: `${Math.round(newPctW)}%` })
     }
 
     const onUp = () => {
@@ -37,25 +40,15 @@ function useResizable(node, updateAttributes) {
 
     document.addEventListener('pointermove', onMove)
     document.addEventListener('pointerup', onUp)
-    document.body.style.cursor = 'col-resize'
+    document.body.style.cursor = 'nwse-resize'
     document.body.style.userSelect = 'none'
   }
 
-  const Handle = () => (
-    <div
-      contentEditable={false}
-      onPointerDown={onPointerDown}
-      className="absolute right-0 top-0 bottom-0 w-4 cursor-col-resize flex items-center justify-center z-20 opacity-0 group-hover:opacity-100 transition-opacity"
-    >
-      <div className="w-[3px] h-8 rounded-full bg-neutral-400 hover:bg-blue-500" />
-    </div>
-  )
-
-  return { ref, Handle }
+  return { ref, startResize }
 }
 
 function MediaNodeView({ node, updateAttributes, extension }) {
-  const { ref, Handle } = useResizable(node, updateAttributes)
+  const { ref, startResize } = useResizable(node, updateAttributes)
   const isVideo = extension.name === 'resizableVideo'
 
   return (
@@ -66,7 +59,13 @@ function MediaNodeView({ node, updateAttributes, extension }) {
         ) : (
           <img ref={ref} src={node.attrs.src} alt={node.attrs.alt || ''} className="w-full rounded-lg" />
         )}
-        <Handle />
+        <div
+          contentEditable={false}
+          onPointerDown={startResize}
+          className="absolute bottom-0 right-0 z-20 opacity-0 group-hover:opacity-100 transition-opacity w-5 h-5 flex items-center justify-center cursor-nwse-resize"
+        >
+          <div className="w-2 h-2 rounded-full bg-neutral-400 hover:bg-blue-500 transition-colors" />
+        </div>
       </div>
     </NodeViewWrapper>
   )
@@ -113,29 +112,217 @@ function createMediaNode(name, tag, attrs) {
 const ResizableImage = createMediaNode('resizableImage', 'img', { alt: { default: null } })
 const ResizableVideo = createMediaNode('resizableVideo', 'video', { controls: { default: true } })
 
+const UploadPlaceholder = Node.create({
+  name: 'uploadPlaceholder',
+  group: 'block',
+  atom: true,
+  draggable: false,
+  selectable: false,
+
+  addAttributes() {
+    return { uploadId: { default: null } }
+  },
+
+  parseHTML() {
+    return [{ tag: 'div[data-type="uploadPlaceholder"]' }]
+  },
+
+  renderHTML({ HTMLAttributes }) {
+    return ['div', mergeAttributes(HTMLAttributes, { 'data-type': 'uploadPlaceholder' })]
+  },
+
+  addNodeView() {
+    return ReactNodeViewRenderer(() => (
+      <NodeViewWrapper>
+        <div className="my-3 flex items-center gap-3 rounded-lg border border-neutral-200 bg-neutral-50 px-4 py-3">
+          <svg className="animate-spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+          </svg>
+          <span className="text-sm text-neutral-500">Uploading...</span>
+        </div>
+      </NodeViewWrapper>
+    ))
+  },
+})
+
+function ImageGalleryNodeView({ node, updateAttributes }) {
+  const [dragged, setDragged] = useState(null)
+  const [over, setOver] = useState(null)
+  const fileRef = useRef(null)
+  const images = node.attrs.images || []
+
+  const onDragStart = (e, i) => { setDragged(i); e.dataTransfer.effectAllowed = 'move' }
+  const onDragOver = (e, i) => { e.preventDefault(); setOver(i) }
+  const onDrop = (e, i) => {
+    e.preventDefault()
+    if (dragged === null || dragged === i) return
+    const arr = [...images]
+    const [item] = arr.splice(dragged, 1)
+    arr.splice(i, 0, item)
+    updateAttributes({ images: arr })
+    setDragged(null); setOver(null)
+  }
+  const onDragEnd = () => { setDragged(null); setOver(null) }
+
+  const addImages = async (files) => {
+    const newImgs = []
+    for (const file of Array.from(files || [])) {
+      try { const r = await api.upload(file); newImgs.push({ src: r.url, alt: '' }) } catch {}
+    }
+    if (newImgs.length) updateAttributes({ images: [...images, ...newImgs] })
+  }
+
+  const removeImage = (i) => updateAttributes({ images: images.filter((_, j) => j !== i) })
+
+  const moveImage = (i, dir) => {
+    const arr = [...images]
+    const j = i + dir
+    if (j < 0 || j >= arr.length) return
+    ;[arr[i], arr[j]] = [arr[j], arr[i]]
+    updateAttributes({ images: arr })
+  }
+
+  if (!images.length) {
+    return (
+      <NodeViewWrapper>
+        <div className="my-4 rounded-xl border-2 border-dashed border-neutral-200 p-8 text-center">
+          <p className="text-sm text-neutral-400 mb-3">No images yet</p>
+          <button onClick={() => fileRef.current?.click()} className="rounded-lg bg-neutral-900 px-4 py-2 text-sm text-white hover:bg-neutral-800">Add images</button>
+          <input ref={fileRef} type="file" accept="image/*" multiple className="hidden" onChange={e => { addImages(e.target.files); e.target.value = '' }} />
+        </div>
+      </NodeViewWrapper>
+    )
+  }
+
+  return (
+    <NodeViewWrapper>
+      <div className="my-4 rounded-xl border border-neutral-100 p-3">
+        <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${node.attrs.columns || 2}, 1fr)` }}>
+          {images.map((img, i) => (
+            <div
+              key={i}
+              draggable
+              onDragStart={e => onDragStart(e, i)}
+              onDragOver={e => onDragOver(e, i)}
+              onDrop={e => onDrop(e, i)}
+              onDragEnd={onDragEnd}
+              className={`relative group rounded-lg overflow-hidden cursor-move ${over === i ? 'ring-2 ring-blue-500' : ''} ${dragged === i ? 'opacity-40' : ''}`}
+            >
+              <img src={img.src} alt={img.alt || ''} className="w-full aspect-square object-cover" />
+              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
+                <div className="flex gap-1">
+                  <button onClick={() => moveImage(i, -1)} className="rounded bg-white/90 p-1 hover:bg-white" title="Move left">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m15 18-6-6 6-6"/></svg>
+                  </button>
+                  <button onClick={() => moveImage(i, 1)} className="rounded bg-white/90 p-1 hover:bg-white" title="Move right">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m9 18 6-6-6-6"/></svg>
+                  </button>
+                  <button onClick={() => removeImage(i)} className="rounded bg-white/90 p-1 hover:bg-white text-red-500" title="Remove">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="mt-2 flex items-center gap-2">
+          <button onClick={() => fileRef.current?.click()} className="rounded-lg border border-neutral-200 px-3 py-1.5 text-xs text-neutral-600 hover:bg-neutral-50">+ Add images</button>
+          <div className="flex items-center gap-1 ml-auto">
+            {[2, 3, 4].map(n => (
+              <button key={n} onClick={() => updateAttributes({ columns: n })} className={`rounded px-2 py-1 text-xs ${node.attrs.columns === n ? 'bg-neutral-900 text-white' : 'text-neutral-500 hover:bg-neutral-100'}`}>{n}</button>
+            ))}
+          </div>
+          <input ref={fileRef} type="file" accept="image/*" multiple className="hidden" onChange={e => { addImages(e.target.files); e.target.value = '' }} />
+        </div>
+      </div>
+    </NodeViewWrapper>
+  )
+}
+
+const ImageGallery = Node.create({
+  name: 'imageGallery',
+  group: 'block',
+  atom: true,
+  draggable: true,
+
+  addAttributes() {
+    return {
+      images: { default: [] },
+      columns: { default: 2 },
+    }
+  },
+
+  parseHTML() {
+    return [{ tag: 'div[data-type="imageGallery"]' }]
+  },
+
+  renderHTML({ HTMLAttributes }) {
+    return ['div', mergeAttributes(HTMLAttributes, { 'data-type': 'imageGallery' })]
+  },
+
+  addCommands() {
+    return {
+      setImageGallery: () => ({ commands }) => {
+        return commands.insertContent({ type: 'imageGallery', attrs: { images: [], columns: 2 } })
+      },
+    }
+  },
+
+  addNodeView() {
+    return ReactNodeViewRenderer(ImageGalleryNodeView)
+  },
+})
+
+function findPlaceholder(doc, uploadId) {
+  let pos = null
+  doc.descendants((node, position) => {
+    if (node.type.name === 'uploadPlaceholder' && node.attrs.uploadId === uploadId) {
+      pos = position
+      return false
+    }
+  })
+  return pos
+}
+
 const Bar = ({ editor, imageRef, videoRef, onError, uploading, setUploading, setProgress }) => {
   if (!editor) return null
 
   const btn = 'p-1.5 rounded-md text-neutral-400 hover:bg-neutral-100 hover:text-neutral-700 transition-colors'
   const active = 'bg-neutral-100 text-neutral-900'
 
-  const handleUpload = async (file, type) => {
-    if (!file) return
+  const handleUpload = async (files, type) => {
+    const list = Array.from(files || [])
+    if (!list.length) return
     setUploading(type)
-    setProgress(0)
-    try {
-      const result = await api.upload(file, (p) => setProgress(p))
-      if (type === 'image') {
-        editor.chain().focus().setResizableImage({ src: result.url }).run()
-      } else {
-        editor.chain().focus().setResizableVideo({ src: result.url }).run()
-      }
-    } catch (err) {
-      onError?.(err.message)
-    } finally {
-      setUploading(null)
-      setProgress(0)
+
+    const ids = list.map((_, i) => `upload-${Date.now()}-${i}`)
+
+    for (const id of ids) {
+      editor.chain().focus().insertContent({ type: 'uploadPlaceholder', attrs: { uploadId: id } }).run()
     }
+
+    for (let i = 0; i < list.length; i++) {
+      setProgress(Math.round(((i + 1) / list.length) * 100))
+      try {
+        const result = await api.upload(list[i])
+        const pos = findPlaceholder(editor.state.doc, ids[i])
+        if (pos !== null) {
+          const nodeType = type === 'image' ? 'resizableImage' : 'resizableVideo'
+          editor.chain().focus().deleteRange({ from: pos, to: pos + 1 }).insertContentAt(pos, {
+            type: nodeType,
+            attrs: { src: result.url, ...(type === 'image' ? { alt: '' } : { controls: true }) }
+          }).run()
+        }
+      } catch (err) {
+        onError?.(err.message)
+        const pos = findPlaceholder(editor.state.doc, ids[i])
+        if (pos !== null) {
+          editor.chain().focus().deleteRange({ from: pos, to: pos + 1 }).run()
+        }
+      }
+    }
+    setUploading(null)
+    setProgress(0)
   }
 
   const Spinner = () => (
@@ -219,6 +406,12 @@ const Bar = ({ editor, imageRef, videoRef, onError, uploading, setUploading, set
           </svg>
         )}
       </button>
+      <button type="button" onClick={() => editor.chain().focus().setImageGallery().run()} className={btn} title="Insert image gallery">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <rect width="18" height="18" x="3" y="3" rx="2" />
+          <path d="M3 15h4l3-3 4 4 4-4h3" />
+        </svg>
+      </button>
 
       <div className="mx-1.5 h-5 w-px bg-neutral-100" />
 
@@ -235,8 +428,8 @@ const Bar = ({ editor, imageRef, videoRef, onError, uploading, setUploading, set
         </svg>
       </button>
 
-      <input type="file" ref={imageRef} accept="image/*" className="hidden" onChange={e => { handleUpload(e.target.files[0], 'image'); e.target.value = '' }} />
-      <input type="file" ref={videoRef} accept="video/*" className="hidden" onChange={e => { handleUpload(e.target.files[0], 'video'); e.target.value = '' }} />
+      <input type="file" ref={imageRef} accept="image/*" multiple className="hidden" onChange={e => { handleUpload(e.target.files, 'image'); e.target.value = '' }} />
+      <input type="file" ref={videoRef} accept="video/*" multiple className="hidden" onChange={e => { handleUpload(e.target.files, 'video'); e.target.value = '' }} />
     </div>
   )
 }
@@ -255,6 +448,8 @@ export default function TipTap({ content, onChange, onError }) {
       TextAlign.configure({ types: ['heading', 'paragraph'] }),
       ResizableImage,
       ResizableVideo,
+      UploadPlaceholder,
+      ImageGallery,
     ],
     content: content || '',
     onUpdate: ({ editor }) => onChange?.(editor.getHTML()),
