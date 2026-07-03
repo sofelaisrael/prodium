@@ -30,7 +30,7 @@ app.use(
       }
     },
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization", "x-file-ext"],
+    allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true,
   }),
 );
@@ -68,4 +68,11 @@ const supabaseAdmin = process.env.SUPABASE_SERVICE_ROLE_KEY
     )
   : supabase;
 
-module.exports = { app, PORT, supabase, supabaseAdmin };
+const cloudinary = require('cloudinary').v2;
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
+
+module.exports = { app, PORT, supabase, supabaseAdmin, cloudinary };

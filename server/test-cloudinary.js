@@ -1,0 +1,6 @@
+const { cloudinary } = require('./app')
+const ts = Math.round(Date.now() / 1000)
+const sig = cloudinary.utils.api_sign_request({ timestamp: ts, folder: 'prodium' }, process.env.CLOUDINARY_API_SECRET)
+console.log('timestamp:', ts)
+console.log('signature:', sig)
+console.log('OK')

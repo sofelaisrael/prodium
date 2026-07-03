@@ -1,4 +1,6 @@
-const { supabase, supabaseAdmin } = require('./app')
+const multer = require('multer')
+const path = require('path')
+const { supabase, supabaseAdmin, cloudinary } = require('./app')
 const { authenticateToken, generateToken } = require('./auth')
 
 module.exports = function (app) {
@@ -47,13 +49,13 @@ module.exports = function (app) {
 
   // Calculate reading time from HTML content
   function calcReadingTime(html) {
-    if (!html) return 1
+    if (!html) return { minutes: 1, videos: 0 }
     const text = html.replace(/<[^>]*>/g, ' ')
     const words = text.split(/\s+/).filter(Boolean).length
     const imgs = (html.match(/<img /gi) || []).length
     const vids = (html.match(/<video |<iframe /gi) || []).length
     const minutes = Math.max(1, Math.ceil(words / 200 + imgs * 0.2 + vids * 0.5))
-    return minutes
+    return { minutes, videos: vids }
   }
 
   // ─── PROJECTS ─────────────────────────────────────────────
@@ -183,10 +185,10 @@ module.exports = function (app) {
 
       res.json({
         ...data,
-        episodes: (episodes || []).map(e => ({
-          ...e,
-          reading_time: calcReadingTime(e.content)
-        }))
+        episodes: (episodes || []).map(e => {
+          const { minutes, videos } = calcReadingTime(e.content)
+          return { ...e, reading_time: minutes, video_count: videos }
+        })
       })
 
     } catch (error) {
@@ -325,10 +327,10 @@ module.exports = function (app) {
         return res.status(500).json({ error: error.message })
       }
 
-      const episodes = (data || []).map(e => ({
-        ...e,
-        reading_time: calcReadingTime(e.content)
-      }))
+      const episodes = (data || []).map(e => {
+        const { minutes, videos } = calcReadingTime(e.content)
+        return { ...e, reading_time: minutes, video_count: videos }
+      })
 
       res.json(episodes)
 
@@ -358,7 +360,8 @@ module.exports = function (app) {
         return res.status(404).json({ error: 'Episode not found' })
       }
 
-      res.json({ ...data, reading_time: calcReadingTime(data.content) })
+      const { minutes, videos } = calcReadingTime(data.content)
+      res.json({ ...data, reading_time: minutes, video_count: videos })
 
     } catch (error) {
       res.status(500).json({ error: error.message })
@@ -495,38 +498,72 @@ module.exports = function (app) {
 
   // ─── UPLOAD ───────────────────────────────────────────────
 
+  const MB = 1024 * 1024
+  const uploadMw = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 4 * MB },
+  }).single('file')
+
   // Upload image or video to Supabase Storage (admin only)
-  app.post('/api/upload', authenticateToken, async (req, res) => {
+  app.post('/api/upload', authenticateToken, (req, res) => {
+    uploadMw(req, res, async (err) => {
+      if (err) {
+        if (err.code === 'LIMIT_FILE_SIZE') {
+          return res.status(413).json({ error: 'File too large. Maximum size is 4MB.' })
+        }
+        return res.status(400).json({ error: err.message })
+      }
+
+      try {
+        const file = req.file
+        if (!file) {
+          return res.status(400).json({ error: 'No file provided' })
+        }
+
+        const ext = path.extname(file.originalname) || '.bin'
+        const filename = `${Date.now()}-${Math.random().toString(36).slice(2)}${ext}`
+        const mimetype = file.mimetype || 'application/octet-stream'
+
+        const { data, error } = await supabaseAdmin.storage
+          .from('uploads')
+          .upload(filename, file.buffer, { contentType: mimetype })
+
+        if (error) {
+          return res.status(500).json({ error: error.message })
+        }
+
+        const { data: urlData } = supabaseAdmin.storage
+          .from('uploads')
+          .getPublicUrl(filename)
+
+        res.json({ url: urlData.publicUrl, filename, mimetype })
+
+      } catch (error) {
+        console.error('Upload error:', error)
+        res.status(500).json({ error: error.message || 'Upload failed' })
+      }
+    })
+  })
+
+  // ─── CLOUDINARY UPLOAD SIGNATURE ─────────────────────────
+
+  // Returns a signature so the frontend can upload directly to Cloudinary
+  // (bypassing Vercel's 4.5MB serverless body limit)
+  app.get('/api/upload-signature', authenticateToken, (req, res) => {
     try {
-      const chunks = []
-      for await (const chunk of req) chunks.push(chunk)
-      const buffer = Buffer.concat(chunks)
+      const timestamp = Math.round(Date.now() / 1000)
+      const params = { timestamp, folder: 'prodium' }
+      const signature = cloudinary.utils.api_sign_request(params, process.env.CLOUDINARY_API_SECRET)
 
-      if (!buffer || buffer.length === 0) {
-        return res.status(400).json({ error: 'No file data received' })
-      }
-
-      const ext = (req.headers['x-file-ext'] || 'bin').replace(/[^a-z0-9.]/gi, '')
-      const filename = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
-      const mimetype = req.headers['content-type'] || 'application/octet-stream'
-
-      const { data, error } = await supabaseAdmin.storage
-        .from('uploads')
-        .upload(filename, buffer, { contentType: mimetype })
-
-      if (error) {
-        return res.status(500).json({ error: error.message })
-      }
-
-      const { data: urlData } = supabaseAdmin.storage
-        .from('uploads')
-        .getPublicUrl(filename)
-
-      res.json({ url: urlData.publicUrl, filename, mimetype })
-
+      res.json({
+        timestamp,
+        signature,
+        api_key: process.env.CLOUDINARY_API_KEY,
+        cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+        folder: 'prodium',
+      })
     } catch (error) {
-      console.error('Upload error:', error)
-      res.status(500).json({ error: error.message || 'Upload failed' })
+      res.status(500).json({ error: error.message })
     }
   })
 
