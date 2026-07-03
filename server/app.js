@@ -49,6 +49,12 @@ app.use(
   }),
 );
 
+// Add this health check endpoint
+app.get("/health", (req, res) => {
+  console.log("Health check endpoint hit!");
+  res.status(200).send("Server is healthy!");
+});
+
 const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_ANON_KEY,
