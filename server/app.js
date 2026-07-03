@@ -2,20 +2,17 @@ const express = require("express");
 const helmet = require("helmet");
 const cors = require("cors");
 const rateLimit = require("express-rate-limit");
+const dotenv = require("dotenv");
 
 const { createClient } = require("@supabase/supabase-js");
+
+dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-
-console.log('Supabase URL:', process.env.SUPABASE_URL);
-console.log('Supabase anon key present?', !!process.env.SUPABASE_ANON_KEY);
-console.log('Supabase service role key present?', !!process.env.SUPABASE_SERVICE_ROLE_KEY);
-
-
 // Security middleware
-app.use(helmet());
+app.use(helmet({ crossOriginResourcePolicy: false }));
 app.use(
   cors({
     origin: [
@@ -24,6 +21,9 @@ app.use(
       "http://localhost:5173",
       "http://localhost:5174",
     ],
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+    credentials: true,
   }),
 );
 // Skip JSON parsing for file uploads
@@ -38,12 +38,6 @@ app.use(
     max: 100,
   }),
 );
-
-// Add this health check endpoint
-app.get("/health", (req, res) => {
-  console.log("Health check endpoint hit!");
-  res.status(200).send("Server is healthy!");
-});
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
