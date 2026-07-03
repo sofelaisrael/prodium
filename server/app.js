@@ -8,6 +8,12 @@ const { createClient } = require("@supabase/supabase-js");
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+
+console.log('Supabase URL:', process.env.SUPABASE_URL);
+console.log('Supabase anon key present?', !!process.env.SUPABASE_ANON_KEY);
+console.log('Supabase service role key present?', !!process.env.SUPABASE_SERVICE_ROLE_KEY);
+
+
 // Security middleware
 app.use(helmet());
 app.use(
