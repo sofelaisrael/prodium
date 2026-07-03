@@ -533,41 +533,53 @@ module.exports = function (app) {
   // ─── ANALYTICS ────────────────────────────────────────────
 
   // GoatCounter analytics proxy (admin only)
-  app.get('/api/analytics/stats', authenticateToken, async (req, res) => {
-    try {
-      const token = process.env.GOATCOUNTER_TOKEN
-      const baseUrl = process.env.GOATCOUNTER_URL
+  app.get('/api/analytics/stats', (req, res) => {
+    // Open to all origins for now
+    res.setHeader('Access-Control-Allow-Origin', '*')
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+    res.setHeader('Access-Control-Allow-Credentials', 'true')
 
-      if (!token || !baseUrl) {
-        return res.status(500).json({ error: 'GoatCounter not configured' })
-      }
-
-      const now = new Date()
-      const start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 30).toISOString()
-      const end = now.toISOString()
-
-      const headers = {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      }
-
-      const [totalRes, hitsRes] = await Promise.all([
-        fetch(`${baseUrl}/api/v0/stats/total?start=${start}&end=${end}`, { headers }),
-        fetch(`${baseUrl}/api/v0/stats/hits?start=${start}&end=${end}`, { headers })
-      ])
-
-      const total = await totalRes.json()
-      const hits = await hitsRes.json()
-
-      res.json({
-        total: total.total ?? 0,
-        totalUnique: total.total_unique ?? 0,
-        paths: hits.hits || []
-      })
-
-    } catch (error) {
-      res.status(500).json({ error: error.message })
+    if (req.method === 'OPTIONS') {
+      return res.status(200).end()
     }
+
+    authenticateToken(req, res, async () => {
+      try {
+        const token = process.env.GOATCOUNTER_TOKEN
+        const baseUrl = process.env.GOATCOUNTER_URL
+
+        if (!token || !baseUrl) {
+          return res.status(500).json({ error: 'GoatCounter not configured' })
+        }
+
+        const now = new Date()
+        const start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 30).toISOString()
+        const end = now.toISOString()
+
+        const headers = {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        }
+
+        const [totalRes, hitsRes] = await Promise.all([
+          fetch(`${baseUrl}/api/v0/stats/total?start=${start}&end=${end}`, { headers }),
+          fetch(`${baseUrl}/api/v0/stats/hits?start=${start}&end=${end}`, { headers })
+        ])
+
+        const total = await totalRes.json()
+        const hits = await hitsRes.json()
+
+        res.json({
+          total: total.total ?? 0,
+          totalUnique: total.total_unique ?? 0,
+          paths: hits.hits || []
+        })
+
+      } catch (error) {
+        res.status(500).json({ error: error.message })
+      }
+    })
   })
 
   // ─── USER ─────────────────────────────────────────────────
