@@ -13,19 +13,13 @@ async function request(path, options = {}) {
 }
 
 export const api = {
-  getProjects: (params = {}) => {
+  getEpisodes: (params = {}) => {
     const qs = new URLSearchParams()
     if (params.search) qs.set('search', params.search)
     if (params.category) qs.set('category', params.category)
     const query = qs.toString()
-    return request(`/projects${query ? `?${query}` : ''}`)
+    return request(`/episodes${query ? `?${query}` : ''}`)
   },
-
-  getProject: (id) => request(`/projects/${id}`),
-
-  getCategories: () => request('/categories'),
-
-  getProjectEpisodes: (projectId) => request(`/projects/${projectId}/episodes`),
 
   getEpisode: (id) => request(`/episodes/${id}`),
 }

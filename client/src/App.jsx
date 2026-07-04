@@ -1,8 +1,7 @@
 import { Routes, Route } from 'react-router-dom'
 import Header from './components/Header'
 import Home from './pages/Home'
-import Projects from './pages/Projects'
-import Project from './pages/Project'
+import Episodes from './pages/Episodes'
 import Episode from './pages/Episode'
 
 export default function App() {
@@ -12,8 +11,7 @@ export default function App() {
       <main className="flex flex-1 flex-col">
         <Routes>
           <Route path="/" element={<Home />} />
-          <Route path="/projects" element={<Projects />} />
-          <Route path="/projects/:id" element={<Project />} />
+          <Route path="/episodes" element={<Episodes />} />
           <Route path="/episodes/:id" element={<Episode />} />
         </Routes>
       </main>

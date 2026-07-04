@@ -1,5 +1,3 @@
-const multer = require('multer')
-const path = require('path')
 const { supabase, supabaseAdmin, cloudinary } = require('./app')
 const { authenticateToken, generateToken } = require('./auth')
 
@@ -58,16 +56,16 @@ module.exports = function (app) {
     return { minutes, videos: vids }
   }
 
-  // ─── PROJECTS ─────────────────────────────────────────────
+  // ─── EPISODES ─────────────────────────────────────────────
 
-  // Get all projects (supports ?search=, ?category=, ?featured=1, ?all=true for admin)
-  app.get('/api/projects', async (req, res) => {
+  // Get all episodes (supports ?search=, ?category=, ?all=true for admin)
+  app.get('/api/episodes', async (req, res) => {
     try {
-      const { search, category, featured, all } = req.query
+      const { search, category, all } = req.query
       const isAdmin = all === 'true'
 
       let query = (isAdmin ? supabaseAdmin : supabase)
-        .from('projects')
+        .from('episodes')
         .select('*')
         .order('created_at', { ascending: false })
 
@@ -81,244 +79,6 @@ module.exports = function (app) {
 
       if (search) {
         query = query.or(`title.ilike.%${search}%,excerpt.ilike.%${search}%`)
-      }
-
-      if (featured === '1') {
-        query = query.limit(6)
-      }
-
-      const { data, error } = await query
-
-      if (error) {
-        return res.status(500).json({ error: error.message })
-      }
-
-      // Attach episode count for each project
-      const projects = await Promise.all((data || []).map(async (p) => {
-        const { count } = await (isAdmin ? supabaseAdmin : supabase)
-          .from('episodes')
-          .select('*', { count: 'exact', head: true })
-          .eq('project_id', p.id)
-
-        const { count: publishedCount } = await (isAdmin ? supabaseAdmin : supabase)
-          .from('episodes')
-          .select('*', { count: 'exact', head: true })
-          .eq('project_id', p.id)
-          .eq('published', true)
-
-        return {
-          ...p,
-          episode_count: count || 0,
-          published_episode_count: publishedCount || 0
-        }
-      }))
-
-      res.json(projects)
-
-    } catch (error) {
-      res.status(500).json({ error: error.message })
-    }
-  })
-
-  // Get all categories with project counts
-  app.get('/api/categories', async (req, res) => {
-    try {
-      const { all } = req.query
-      const isAdmin = all === 'true'
-
-      let query = (isAdmin ? supabaseAdmin : supabase)
-        .from('projects')
-        .select('category')
-
-      if (!isAdmin) {
-        query = query.eq('published', true)
-      }
-
-      const { data, error } = await query
-
-      if (error) {
-        return res.status(500).json({ error: error.message })
-      }
-
-      const counts = {}
-      for (const row of (data || [])) {
-        const cat = row.category || 'General'
-        counts[cat] = (counts[cat] || 0) + 1
-      }
-
-      const categories = Object.entries(counts)
-        .map(([name, count]) => ({ name, count }))
-        .sort((a, b) => b.count - a.count)
-
-      res.json(categories)
-
-    } catch (error) {
-      res.status(500).json({ error: error.message })
-    }
-  })
-
-  // Get single project (with published episodes only)
-  app.get('/api/projects/:id', async (req, res) => {
-    try {
-      const { data, error } = await supabase
-        .from('projects')
-        .select('*')
-        .eq('id', req.params.id)
-        .eq('published', true)
-        .single()
-
-      if (error) {
-        return res.status(404).json({ error: 'Project not found' })
-      }
-
-      // Get published episodes for this project
-      const { data: episodes, error: epError } = await supabase
-        .from('episodes')
-        .select('*')
-        .eq('project_id', req.params.id)
-        .eq('published', true)
-        .order('created_at', { ascending: true })
-
-      if (epError) {
-        return res.status(500).json({ error: epError.message })
-      }
-
-      res.json({
-        ...data,
-        episodes: (episodes || []).map(e => {
-          const { minutes, videos } = calcReadingTime(e.content)
-          return { ...e, reading_time: minutes, video_count: videos }
-        })
-      })
-
-    } catch (error) {
-      res.status(500).json({ error: error.message })
-    }
-  })
-
-  // Create project (owner only)
-  app.post('/api/projects', authenticateToken, async (req, res) => {
-    try {
-      const { title, excerpt, category, published } = req.body
-
-      if (!title) {
-        return res.status(400).json({ error: 'Title is required' })
-      }
-
-      const { data, error } = await supabaseAdmin
-        .from('projects')
-        .insert([{
-          title,
-          excerpt: excerpt || '',
-          category: category || 'General',
-          author_email: req.user.email,
-          author_id: req.user.userId,
-          published: published !== false
-        }])
-        .select()
-
-      if (error) {
-        return res.status(500).json({ error: error.message })
-      }
-
-      res.status(201).json(data[0])
-
-    } catch (error) {
-      res.status(500).json({ error: error.message })
-    }
-  })
-
-  // Update project (owner only)
-  app.put('/api/projects/:id', authenticateToken, async (req, res) => {
-    try {
-      const { title, excerpt, category, published } = req.body
-
-      const { data: existing, error: fetchError } = await supabaseAdmin
-        .from('projects')
-        .select('*')
-        .eq('id', req.params.id)
-        .single()
-
-      if (fetchError || !existing) {
-        return res.status(404).json({ error: 'Project not found' })
-      }
-
-      if (existing.author_id !== req.user.userId) {
-        return res.status(403).json({ error: 'Not authorized to update this project' })
-      }
-
-      const { data, error } = await supabaseAdmin
-        .from('projects')
-        .update({
-          title: title || existing.title,
-          excerpt: excerpt !== undefined ? excerpt : existing.excerpt,
-          category: category || existing.category,
-          published: published !== undefined ? published : existing.published,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', req.params.id)
-        .select()
-
-      if (error) {
-        return res.status(500).json({ error: error.message })
-      }
-
-      res.json(data[0])
-
-    } catch (error) {
-      res.status(500).json({ error: error.message })
-    }
-  })
-
-  // Delete project (owner only, cascades episodes)
-  app.delete('/api/projects/:id', authenticateToken, async (req, res) => {
-    try {
-      const { data: existing, error: fetchError } = await supabaseAdmin
-        .from('projects')
-        .select('*')
-        .eq('id', req.params.id)
-        .single()
-
-      if (fetchError || !existing) {
-        return res.status(404).json({ error: 'Project not found' })
-      }
-
-      if (existing.author_id !== req.user.userId) {
-        return res.status(403).json({ error: 'Not authorized to delete this project' })
-      }
-
-      const { error } = await supabaseAdmin
-        .from('projects')
-        .delete()
-        .eq('id', req.params.id)
-
-      if (error) {
-        return res.status(500).json({ error: error.message })
-      }
-
-      res.json({ message: 'Project deleted successfully' })
-
-    } catch (error) {
-      res.status(500).json({ error: error.message })
-    }
-  })
-
-  // ─── EPISODES ─────────────────────────────────────────────
-
-  // Get episodes for a project (supports ?all=true for admin)
-  app.get('/api/projects/:projectId/episodes', async (req, res) => {
-    try {
-      const { all } = req.query
-      const isAdmin = all === 'true'
-
-      let query = (isAdmin ? supabaseAdmin : supabase)
-        .from('episodes')
-        .select('*')
-        .eq('project_id', req.params.projectId)
-        .order('created_at', { ascending: true })
-
-      if (!isAdmin) {
-        query = query.eq('published', true)
       }
 
       const { data, error } = await query
@@ -339,7 +99,7 @@ module.exports = function (app) {
     }
   })
 
-  // Get single episode (published only, or all with ?all=true for admin)
+  // Get single episode
   app.get('/api/episodes/:id', async (req, res) => {
     try {
       const { all } = req.query
@@ -368,38 +128,26 @@ module.exports = function (app) {
     }
   })
 
-  // Create episode in a project (owner only)
-  app.post('/api/projects/:projectId/episodes', authenticateToken, async (req, res) => {
+  // Create episode (owner only)
+  app.post('/api/episodes', authenticateToken, async (req, res) => {
     try {
-      const { title, content, excerpt, published } = req.body
+      const { title, content, excerpt, published, banner_image, category } = req.body
 
       if (!title || !content) {
         return res.status(400).json({ error: 'Title and content are required' })
       }
 
-      // Verify project exists and user owns it
-      const { data: project, error: projError } = await supabaseAdmin
-        .from('projects')
-        .select('*')
-        .eq('id', req.params.projectId)
-        .single()
-
-      if (projError || !project) {
-        return res.status(404).json({ error: 'Project not found' })
-      }
-
-      if (project.author_id !== req.user.userId) {
-        return res.status(403).json({ error: 'Not authorized' })
-      }
-
       const { data, error } = await supabaseAdmin
         .from('episodes')
         .insert([{
-          project_id: req.params.projectId,
           title,
           content,
           excerpt: excerpt || content.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().substring(0, 200) + '...',
-          published: published !== false
+          published: published !== false,
+          banner_image: banner_image || null,
+          category: category || 'General',
+          author_id: req.user.userId,
+          author_email: req.user.email,
         }])
         .select()
 
@@ -417,11 +165,11 @@ module.exports = function (app) {
   // Update episode (owner only)
   app.put('/api/episodes/:id', authenticateToken, async (req, res) => {
     try {
-      const { title, content, excerpt, published } = req.body
+      const { title, content, excerpt, published, banner_image, category } = req.body
 
       const { data: existing, error: fetchError } = await supabaseAdmin
         .from('episodes')
-        .select('*, projects!inner(author_id)')
+        .select('*')
         .eq('id', req.params.id)
         .single()
 
@@ -429,22 +177,23 @@ module.exports = function (app) {
         return res.status(404).json({ error: 'Episode not found' })
       }
 
-      if (existing.projects.author_id !== req.user.userId) {
+      if (existing.author_id !== req.user.userId) {
         return res.status(403).json({ error: 'Not authorized to update this episode' })
       }
 
       const update = {
-          title: title || existing.title,
-          content: content || existing.content,
-          excerpt: excerpt !== undefined ? excerpt : existing.excerpt,
-          published: published !== undefined ? published : existing.published,
-          updated_at: new Date().toISOString()
-        }
+        title: title || existing.title,
+        content: content || existing.content,
+        excerpt: excerpt !== undefined ? excerpt : existing.excerpt,
+        published: published !== undefined ? published : existing.published,
+        category: category || existing.category,
+        banner_image: banner_image !== undefined ? banner_image : existing.banner_image,
+        updated_at: new Date().toISOString(),
+      }
 
-        // When publishing a draft, set created_at to now so it sorts after existing published episodes
-        if (published === true && existing.published === false) {
-          update.created_at = new Date().toISOString()
-        }
+      if (published === true && existing.published === false) {
+        update.created_at = new Date().toISOString()
+      }
 
       const { data, error } = await supabaseAdmin
         .from('episodes')
@@ -468,7 +217,7 @@ module.exports = function (app) {
     try {
       const { data: existing, error: fetchError } = await supabaseAdmin
         .from('episodes')
-        .select('*, projects!inner(author_id)')
+        .select('*')
         .eq('id', req.params.id)
         .single()
 
@@ -476,7 +225,7 @@ module.exports = function (app) {
         return res.status(404).json({ error: 'Episode not found' })
       }
 
-      if (existing.projects.author_id !== req.user.userId) {
+      if (existing.author_id !== req.user.userId) {
         return res.status(403).json({ error: 'Not authorized to delete this episode' })
       }
 
@@ -498,57 +247,49 @@ module.exports = function (app) {
 
   // ─── UPLOAD ───────────────────────────────────────────────
 
-  const MB = 1024 * 1024
-  const uploadMw = multer({
-    storage: multer.memoryStorage(),
-    limits: { fileSize: 4 * MB },
-  }).single('file')
+  const MAX_UPLOAD = 4 * 1024 * 1024
 
-  // Upload image or video to Supabase Storage (admin only)
-  app.post('/api/upload', authenticateToken, (req, res) => {
-    uploadMw(req, res, async (err) => {
-      if (err) {
-        if (err.code === 'LIMIT_FILE_SIZE') {
-          return res.status(413).json({ error: 'File too large. Maximum size is 4MB.' })
-        }
-        return res.status(400).json({ error: err.message })
+  app.post('/api/upload', authenticateToken, async (req, res) => {
+    try {
+      const chunks = []
+      for await (const chunk of req) chunks.push(chunk)
+
+      const buffer = Buffer.concat(chunks)
+
+      if (!buffer || buffer.length === 0) {
+        return res.status(400).json({ error: 'No file data received' })
       }
 
-      try {
-        const file = req.file
-        if (!file) {
-          return res.status(400).json({ error: 'No file provided' })
-        }
-
-        const ext = path.extname(file.originalname) || '.bin'
-        const filename = `${Date.now()}-${Math.random().toString(36).slice(2)}${ext}`
-        const mimetype = file.mimetype || 'application/octet-stream'
-
-        const { data, error } = await supabaseAdmin.storage
-          .from('uploads')
-          .upload(filename, file.buffer, { contentType: mimetype })
-
-        if (error) {
-          return res.status(500).json({ error: error.message })
-        }
-
-        const { data: urlData } = supabaseAdmin.storage
-          .from('uploads')
-          .getPublicUrl(filename)
-
-        res.json({ url: urlData.publicUrl, filename, mimetype })
-
-      } catch (error) {
-        console.error('Upload error:', error)
-        res.status(500).json({ error: error.message || 'Upload failed' })
+      if (buffer.length > MAX_UPLOAD) {
+        return res.status(413).json({ error: 'File too large. Maximum size is 4MB.' })
       }
-    })
+
+      const ext = (req.headers['x-file-ext'] || 'bin').replace(/[^a-z0-9.]/gi, '')
+      const filename = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
+      const mimetype = req.headers['content-type'] || 'application/octet-stream'
+
+      const { data, error } = await supabaseAdmin.storage
+        .from('uploads')
+        .upload(filename, buffer, { contentType: mimetype })
+
+      if (error) {
+        return res.status(500).json({ error: error.message })
+      }
+
+      const { data: urlData } = supabaseAdmin.storage
+        .from('uploads')
+        .getPublicUrl(filename)
+
+      res.json({ url: urlData.publicUrl, filename, mimetype })
+
+    } catch (error) {
+      console.error('Upload error:', error)
+      res.status(500).json({ error: error.message || 'Upload failed' })
+    }
   })
 
   // ─── CLOUDINARY UPLOAD SIGNATURE ─────────────────────────
 
-  // Returns a signature so the frontend can upload directly to Cloudinary
-  // (bypassing Vercel's 4.5MB serverless body limit)
   app.get('/api/upload-signature', authenticateToken, (req, res) => {
     try {
       const timestamp = Math.round(Date.now() / 1000)
@@ -569,9 +310,7 @@ module.exports = function (app) {
 
   // ─── ANALYTICS ────────────────────────────────────────────
 
-  // GoatCounter analytics proxy (admin only)
   app.get('/api/analytics/stats', (req, res) => {
-    // Open to all origins for now
     res.setHeader('Access-Control-Allow-Origin', '*')
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
@@ -621,11 +360,10 @@ module.exports = function (app) {
 
   // ─── USER ─────────────────────────────────────────────────
 
-  // Get user profile (owner only)
   app.get('/api/users/me', authenticateToken, async (req, res) => {
     try {
       const { data, error } = await supabaseAdmin
-        .from('projects')
+        .from('episodes')
         .select('*')
         .eq('author_id', req.user.userId)
         .order('created_at', { ascending: false })
@@ -639,7 +377,7 @@ module.exports = function (app) {
           id: req.user.userId,
           email: req.user.email
         },
-        projects: data || []
+        episodes: data || []
       })
 
     } catch (error) {

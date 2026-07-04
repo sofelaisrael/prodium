@@ -42,25 +42,21 @@ export const api = {
   login: (email, password) =>
     request('/login', { method: 'POST', body: JSON.stringify({ email, password }) }),
 
-  getProjects: () => request('/projects?all=true'),
-  getProject: (id) => request(`/projects/${id}`),
-  createProject: (project) =>
-    request('/projects', { method: 'POST', body: JSON.stringify(project) }),
-  updateProject: (id, project) =>
-    request(`/projects/${id}`, { method: 'PUT', body: JSON.stringify(project) }),
-  deleteProject: (id) =>
-    request(`/projects/${id}`, { method: 'DELETE' }),
+  getEpisodes: (params = {}) => {
+    const qs = new URLSearchParams({ all: 'true' })
+    if (params.search) qs.set('search', params.search)
+    if (params.category) qs.set('category', params.category)
+    return request(`/episodes?${qs}`)
+  },
 
-  getProjectEpisodes: (projectId) => request(`/projects/${projectId}/episodes?all=true`),
   getEpisode: (id) => request(`/episodes/${id}?all=true`),
-  createEpisode: (projectId, episode) =>
-    request(`/projects/${projectId}/episodes`, { method: 'POST', body: JSON.stringify(episode) }),
+  createEpisode: (episode) =>
+    request('/episodes', { method: 'POST', body: JSON.stringify(episode) }),
   updateEpisode: (id, episode) =>
     request(`/episodes/${id}`, { method: 'PUT', body: JSON.stringify(episode) }),
   deleteEpisode: (id) =>
     request(`/episodes/${id}`, { method: 'DELETE' }),
 
   getAnalytics: () => request('/analytics/stats'),
-  getCategories: () => request('/categories?all=true'),
   upload: (file, onProgress) => uploadWithProgress('/upload', file, onProgress),
 }

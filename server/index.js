@@ -24,17 +24,11 @@ app.use((req, res) => {
 // Export the app for Vercel to handle
 module.exports = app;
 
-// The following lines are for local development and should be conditional
-// or removed if Vercel handles the port binding.
-// If you still want to run this locally with `node server/index.js`,
-// you might need to conditionally start the server.
-// For Vercel, the `app.listen` part is not needed.
-
-// Example of conditional start for local development:
-// if (process.env.NODE_ENV !== 'production') {
-//   const PORT = process.env.PORT || 5000; // Use a default port if not set
-//   app.listen(PORT, () => {
-//     console.log(`Server running on port ${PORT}`);
-//     console.log(`API endpoints available at http://localhost:${PORT}/api/`);
-//   });
-// }
+// Start server for local development (skipped when imported by Vercel)
+if (require.main === module) {
+  const PORT = process.env.PORT || 5000;
+  app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+    console.log(`API endpoints available at http://localhost:${PORT}/api/`);
+  });
+}

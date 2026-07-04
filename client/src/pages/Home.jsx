@@ -21,10 +21,10 @@ export default function Home() {
             </p>
             <div className="mt-8">
               <Link
-                to="/projects"
+                to="/episodes"
                 className="inline-flex items-center gap-2 bg-white px-10 py-3 text-[15px] font-medium text-black"
               >
-                Browse Projects
+                Browse Episodes
                 <img src={lineIcon} alt="" className="h-2 w-auto" />
               </Link>
             </div>
