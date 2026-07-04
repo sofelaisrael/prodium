@@ -23,15 +23,24 @@ const allowedOrigins = [
 app.use(
   cors({
     origin: (origin, callback) => {
-      if (!origin || allowedOrigins.includes(origin) || origin.endsWith(".vercel.app")) {
+      // Allow requests with no origin (like mobile apps or curl)
+      if (!origin) return callback(null, true);
+
+      if (
+        allowedOrigins.includes(origin) ||
+        origin.endsWith(".vercel.app") ||
+        /^https?:\/\/localhost(:\d+)?$/.test(origin)
+      ) {
         callback(null, true);
       } else {
-        callback(null, false);
+        console.log("CORS blocked origin:", origin);
+        callback(new Error("Not allowed by CORS"));
       }
     },
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization", "X-File-Ext"],
     credentials: true,
+    optionsSuccessStatus: 200,
   }),
 );
 // Skip JSON parsing for file uploads
