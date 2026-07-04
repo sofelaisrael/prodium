@@ -4,7 +4,10 @@ const BASE = window.location.hostname === 'localhost'
 
 async function request(path, options = {}) {
   const token = localStorage.getItem('token')
-  const headers = { 'Content-Type': 'application/json', ...options.headers }
+  const headers = { ...options.headers }
+  if (!headers['Content-Type'] && !(options.body instanceof FormData)) {
+    headers['Content-Type'] = 'application/json'
+  }
   if (token) headers['Authorization'] = `Bearer ${token}`
 
   const res = await fetch(`${BASE}${path}`, { ...options, headers })
@@ -15,26 +18,23 @@ async function request(path, options = {}) {
   return data
 }
 
-function uploadWithProgress(path, file, onProgress) {
+function uploadWithProgress(url, formData, onProgress) {
   return new Promise((resolve, reject) => {
-    const token = localStorage.getItem('token')
-    const ext = file.name.split('.').pop()
     const xhr = new XMLHttpRequest()
-    xhr.open('POST', `${BASE}${path}`)
-    xhr.setRequestHeader('Content-Type', file.type)
-    xhr.setRequestHeader('X-File-Ext', ext)
-    if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`)
+    xhr.open('POST', url)
+
     xhr.upload.onprogress = (e) => {
       if (e.lengthComputable) onProgress?.(Math.round((e.loaded / e.total) * 100))
     }
+
     xhr.onload = () => {
       let data
       try { data = xhr.responseText ? JSON.parse(xhr.responseText) : {} } catch { data = {} }
       if (xhr.status >= 200 && xhr.status < 300) resolve(data)
-      else reject(new Error(data.error || `Upload failed (${xhr.status})`))
+      else reject(new Error(data.error || data.message || `Upload failed (${xhr.status})`))
     }
     xhr.onerror = () => reject(new Error('Network error'))
-    xhr.send(file)
+    xhr.send(formData)
   })
 }
 
@@ -58,5 +58,27 @@ export const api = {
     request(`/episodes/${id}`, { method: 'DELETE' }),
 
   getAnalytics: () => request('/analytics/stats'),
-  upload: (file, onProgress) => uploadWithProgress('/upload', file, onProgress),
+
+  getUploadSignature: () => request('/upload-signature'),
+
+  async upload(file, onProgress) {
+    try {
+      const { signature, timestamp, api_key, cloud_name, folder } = await this.getUploadSignature()
+
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('api_key', api_key)
+      formData.append('timestamp', timestamp)
+      formData.append('signature', signature)
+      formData.append('folder', folder)
+
+      const url = `https://api.cloudinary.com/v1_1/${cloud_name}/${file.type.startsWith('video/') ? 'video' : 'image'}/upload`
+
+      const result = await uploadWithProgress(url, formData, onProgress)
+      return { url: result.secure_url, filename: result.public_id, mimetype: file.type }
+    } catch (err) {
+      console.error('Upload failed:', err)
+      throw err
+    }
+  },
 }
