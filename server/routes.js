@@ -260,7 +260,7 @@ module.exports = function (app) {
 
       const title = escapeHtml(episode.title || 'Prodium')
       const description = escapeHtml(episode.excerpt || 'Published by Sofela.')
-      const image = episode.banner_image || ''
+      const image = episode.banner_image || `${CLIENT_URL}/og-default.png`
       const url = `${CLIENT_URL}/episodes/${episode.id}`
 
       res.send(`<!DOCTYPE html>
@@ -274,11 +274,11 @@ module.exports = function (app) {
   <meta property="og:title" content="${title}" />
   <meta property="og:description" content="${description}" />
   <meta property="og:url" content="${url}" />
-  ${image ? `<meta property="og:image" content="${escapeHtml(image)}" />` : ''}
-  <meta name="twitter:card" content="${image ? 'summary_large_image' : 'summary'}" />
+  <meta property="og:image" content="${escapeHtml(image)}" />
+  <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="${title}" />
   <meta name="twitter:description" content="${description}" />
-  ${image ? `<meta name="twitter:image" content="${escapeHtml(image)}" />` : ''}
+  <meta name="twitter:image" content="${escapeHtml(image)}" />
   <script>location.href="${url}"</script>
 </head>
 <body>

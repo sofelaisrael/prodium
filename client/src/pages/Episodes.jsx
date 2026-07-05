@@ -99,7 +99,7 @@ export default function Episodes() {
                       </div>
                     )}
                   </div>
-                  <div className="h-[160px] flex flex-col justify-between gap-2">
+                  <div className="h-[180px] flex flex-col justify-between gap-1">
                     <h2 className="mt-2 font-bebas text-[22px] uppercase  leading-tight tracking-wide text-neutral-900 line-clamp-2">
                       {e.title}
                     </h2>
@@ -111,7 +111,7 @@ export default function Episodes() {
                         {e.excerpt}
                       </p>
                     )}
-                    <div className="inline-flex items-center gap-2 mt-2 bg-white px-15 py-2 text-[11px] font-medium text-[#777] border-[#777] border self-start">
+                    <div className="inline-flex items-center gap-2 bg-white px-15 py-2 text-[11px] font-medium text-[#777] border-[#777] border self-start">
                       Read
                       <img src={lineIcon} alt="" className="h-1 w-auto" />
                     </div>
