@@ -25,7 +25,6 @@ function Skeleton() {
 
 function LazyVideoPlayer({ src }) {
   const [visible, setVisible] = useState(false)
-  const [loaded, setLoaded] = useState(false)
   const ref = useRef(null)
 
   useEffect(() => {
@@ -49,20 +48,7 @@ function LazyVideoPlayer({ src }) {
   return (
     <div ref={ref} className="my-6 overflow-hidden rounded-lg" style={{ maxHeight: '80vh' }}>
       {!visible && <Skeleton />}
-      {visible && !loaded && (
-        <>
-          <Skeleton />
-          <video
-            src={src}
-            onLoadedData={() => setLoaded(true)}
-            className="hidden"
-            preload="auto"
-          />
-        </>
-      )}
-      {visible && loaded && (
-        <VideoPlayer src={src} />
-      )}
+      {visible && <VideoPlayer src={src} />}
     </div>
   )
 }

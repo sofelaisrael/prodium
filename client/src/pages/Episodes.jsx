@@ -40,7 +40,7 @@ export default function Episodes() {
         <p className="mt-3 text-[15px] text-neutral-500 font-light flex items-center gap-2">
           Explore all published episodes
           <span className="inline-flex border h-1.5 w-1.5 rounded-full bg-neutral-900" />
-          {allEpisodes.length} episodes
+          {allEpisodes.length} episode{allEpisodes.length !== 1 ? 's' : ''}
         </p>
       </div>
 
