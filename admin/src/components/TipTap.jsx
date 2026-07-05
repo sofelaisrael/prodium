@@ -167,7 +167,7 @@ function ImageGalleryNodeView({ node, updateAttributes }) {
   const addImages = async (files) => {
     const newImgs = []
     for (const file of Array.from(files || [])) {
-      try { const r = await api.upload(file); newImgs.push({ src: r.url, alt: '' }) } catch {}
+      try { const r = await api.uploadToCloudinary(file); newImgs.push({ src: r.url, alt: '' }) } catch {}
     }
     if (newImgs.length) updateAttributes({ images: [...images, ...newImgs] })
   }
@@ -304,7 +304,7 @@ const Bar = ({ editor, imageRef, videoRef, onError, uploading, setUploading, set
     for (let i = 0; i < list.length; i++) {
       setProgress(Math.round(((i + 1) / list.length) * 100))
       try {
-        const result = await api.upload(list[i])
+        const result = await api.uploadToCloudinary(list[i])
         const pos = findPlaceholder(editor.state.doc, ids[i])
         if (pos !== null) {
           const nodeType = type === 'image' ? 'resizableImage' : 'resizableVideo'

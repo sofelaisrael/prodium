@@ -58,5 +58,36 @@ export const api = {
     request(`/episodes/${id}`, { method: 'DELETE' }),
 
   getAnalytics: () => request('/analytics/stats'),
-  upload: (file, onProgress) => uploadWithProgress('/upload', file, onProgress),
+  getUploadSignature: () => request('/upload-signature'),
+
+  uploadToCloudinary: (file, onProgress) => {
+    return new Promise(async (resolve, reject) => {
+      try {
+        const sig = await request('/upload-signature')
+        const uploadUrl = `https://api.cloudinary.com/v1_1/${sig.cloud_name}/auto/upload`
+        const formData = new FormData()
+        formData.append('file', file)
+        formData.append('api_key', sig.api_key)
+        formData.append('timestamp', sig.timestamp)
+        formData.append('signature', sig.signature)
+        formData.append('folder', sig.folder)
+
+        const xhr = new XMLHttpRequest()
+        xhr.open('POST', uploadUrl)
+        xhr.upload.onprogress = (e) => {
+          if (e.lengthComputable) onProgress?.(Math.round((e.loaded / e.total) * 100))
+        }
+        xhr.onload = () => {
+          let data
+          try { data = JSON.parse(xhr.responseText) } catch { data = {} }
+          if (xhr.status >= 200 && xhr.status < 300) resolve({ url: data.secure_url })
+          else reject(new Error(data.error?.message || `Upload failed (${xhr.status})`))
+        }
+        xhr.onerror = () => reject(new Error('Network error'))
+        xhr.send(formData)
+      } catch (err) {
+        reject(err)
+      }
+    })
+  },
 }

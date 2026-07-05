@@ -177,10 +177,6 @@ module.exports = function (app) {
         return res.status(404).json({ error: 'Episode not found' })
       }
 
-      if (existing.author_id !== req.user.userId) {
-        return res.status(403).json({ error: 'Not authorized to update this episode' })
-      }
-
       const update = {
         title: title || existing.title,
         content: content || existing.content,
@@ -223,10 +219,6 @@ module.exports = function (app) {
 
       if (fetchError || !existing) {
         return res.status(404).json({ error: 'Episode not found' })
-      }
-
-      if (existing.author_id !== req.user.userId) {
-        return res.status(403).json({ error: 'Not authorized to delete this episode' })
       }
 
       const { error } = await supabaseAdmin

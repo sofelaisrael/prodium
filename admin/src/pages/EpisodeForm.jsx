@@ -68,7 +68,7 @@ export default function EpisodeForm() {
     if (!file) return
     setBannerUploading(true)
     try {
-      const result = await api.upload(file)
+      const result = await api.uploadToCloudinary(file)
       setBannerImage(result.url)
     } catch (err) {
       setError(err.message)
