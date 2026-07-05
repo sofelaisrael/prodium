@@ -237,6 +237,59 @@ module.exports = function (app) {
     }
   })
 
+  // ─── EPISODE OG (social sharing) ──────────────────────────
+
+  const CLIENT_URL = 'https://prodium.vercel.app'
+
+  function escapeHtml(str) {
+    return (str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+  }
+
+  app.get('/episodes/:id', async (req, res) => {
+    try {
+      const { data: episode, error } = await supabaseAdmin
+        .from('episodes')
+        .select('id, title, excerpt, banner_image, category')
+        .eq('id', req.params.id)
+        .eq('published', true)
+        .single()
+
+      if (error || !episode) {
+        return res.redirect(302, CLIENT_URL)
+      }
+
+      const title = escapeHtml(episode.title || 'Prodium')
+      const description = escapeHtml(episode.excerpt || 'Published by Sofela.')
+      const image = episode.banner_image || ''
+      const url = `${CLIENT_URL}/episodes/${episode.id}`
+
+      res.send(`<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>${title} — Prodium</title>
+  <meta property="og:type" content="article" />
+  <meta property="og:site_name" content="Prodium" />
+  <meta property="og:title" content="${title}" />
+  <meta property="og:description" content="${description}" />
+  <meta property="og:url" content="${url}" />
+  ${image ? `<meta property="og:image" content="${escapeHtml(image)}" />` : ''}
+  <meta name="twitter:card" content="${image ? 'summary_large_image' : 'summary'}" />
+  <meta name="twitter:title" content="${title}" />
+  <meta name="twitter:description" content="${description}" />
+  ${image ? `<meta name="twitter:image" content="${escapeHtml(image)}" />` : ''}
+  <script>location.href="${url}"</script>
+</head>
+<body>
+  <p>Redirecting to <a href="${url}">${title}</a>...</p>
+</body>
+</html>`)
+    } catch (err) {
+      res.redirect(302, CLIENT_URL)
+    }
+  })
+
   // ─── UPLOAD ───────────────────────────────────────────────
 
   const MAX_UPLOAD = 4 * 1024 * 1024
