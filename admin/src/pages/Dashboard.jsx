@@ -62,15 +62,20 @@ export default function Dashboard() {
         <section>
           <h2 className="mb-4 text-[13px] font-medium uppercase tracking-wider text-neutral-400">Top pages</h2>
           <div className="divide-y divide-neutral-100 rounded-xl border border-neutral-100 bg-white">
-            {analytics.paths.slice(0, 5).map(p => (
-              <div key={p.path} className="flex items-center justify-between px-5 py-3.5">
-                <span className="text-[14px] text-neutral-700 truncate">{p.path}</span>
-                <div className="flex gap-6 text-[13px] text-neutral-400">
-                  <span>{p.count} views</span>
-                  <span>{p.count_unique} unique</span>
+            {analytics.paths.slice(0, 5).map(p => {
+              const episodeId = p.path.split('/').pop()
+              const episode = episodes.find(e => e.id === episodeId || e.id?.toString() === episodeId)
+              const displayName = episode?.title || p.path
+              return (
+                <div key={p.path} className="flex items-center justify-between px-5 py-3.5">
+                  <span className="text-[14px] text-neutral-700 truncate">{displayName}</span>
+                  <div className="flex gap-6 text-[13px] text-neutral-400">
+                    <span>{p.count} views</span>
+                    <span>{p.count_unique} unique</span>
+                  </div>
                 </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         </section>
       )}

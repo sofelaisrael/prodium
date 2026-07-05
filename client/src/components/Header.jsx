@@ -40,8 +40,8 @@ export default function Header() {
   const contentClass = closing ? 'animate-content-out' : 'animate-strip-in'
 
   return (
-    <header className="relative z-[60] border-b border-neutral-100 mx-5 md:mx-20 py-5">
-      <div className="mx-auto flex h-14 items-center justify-between">
+    <header className="fixed top-0 left-0 right-0 z-[1000] max-md:z-[10000] border-neutral-100 bg-white px-5 md:px-20 py-5 max-md:py-2">
+      <div className="mx-auto flex h-14 max-md:h-12 items-center justify-between">
         <Link to="/" className="flex items-center">
           <img src={logo} alt="Prodium" className="h-14 w-auto" />
         </Link>
@@ -67,7 +67,7 @@ export default function Header() {
       </div>
 
       {mobileOpen && (
-        <nav className="fixed inset-0 z-50 md:hidden">
+        <nav className="fixed inset-0 z-[10000] md:hidden">
           {strips.map((_, i) => (
             <div
               key={i}
@@ -99,16 +99,15 @@ export default function Header() {
                   key={item.path}
                   to={item.path}
                   onClick={closeMenu}
-                  className="font-novamono text-[36px] font-extrabold text-neutral-900"
+                  className="font-novamono text-[36px] max-md:text-[24px] font-extrabold text-neutral-900"
                 >
                   {item.label}
                 </Link>
               ))}
             </div>
             <div className="font-novamono mt-auto mx-5 pb-10 flex gap-6 text-[13px] text-neutral-400">
-              <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" className="hover:text-neutral-900">Instagram</a>
-              <a href="mailto:hello@sofela.com" className="hover:text-neutral-900">Email</a>
-              <a href="https://vimeo.com" target="_blank" rel="noopener noreferrer" className="hover:text-neutral-900">Vimeo</a>
+              <a href="https://www.instagram.com/soofelaa" target="_blank" rel="noopener noreferrer" className="hover:text-neutral-900">Instagram</a>
+              <a href="mailto:Promisesofela2000@gmail.com" className="hover:text-neutral-900">Email</a>
             </div>
           </div>
         </nav>
