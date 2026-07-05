@@ -108,23 +108,23 @@ export default function Episode() {
       {/* Bottom navigation */}
       <div className="flex items-center gap-3 mt-8 py-4 sm:gap-5">
         {prevNext.prev ? (
-          <Link to={`/episodes/${prevNext.prev.id}`} className="flex items-center justify-center gap-2 border border-black px-4 py-2.5 text-[11px] text-black hover:bg-black hover:text-white transition-colors rounded-none sm:px-10 sm:py-2.5 sm:text-[16px]">
+          <Link to={`/episodes/${prevNext.prev.id}`} className="flex items-center justify-center gap-2 border border-black w-[140px] py-2.5 text-[11px] text-black hover:bg-black hover:text-white transition-colors rounded-none sm:w-[226px] sm: sm:py-2.5 sm:text-[16px]">
             Previous Episode
             <img src={lineIcon} alt="" className="h-2 w-auto" />
           </Link>
         ) : (
-          <span className="flex items-center justify-center gap-2 border border-neutral-200 px-4 py-2.5 text-[11px] text-neutral-300 cursor-not-allowed rounded-none sm:px-10 sm:py-2.5 sm:text-[16px]">
+          <span className="flex items-center justify-center gap-2 border border-neutral-200 w-[140px] py-2.5 text-[11px] text-neutral-300 cursor-not-allowed rounded-none sm:w-[226px] sm: sm:py-2.5 sm:text-[16px]">
             Previous Episode
             <img src={lineIcon} alt="" className="h-2 w-auto opacity-40" />
           </span>
         )}
         {prevNext.next ? (
-          <Link to={`/episodes/${prevNext.next.id}`} className="flex items-center justify-center gap-2 bg-black text-white border border-black px-4 py-2.5 text-[11px] rounded-none hover:bg-neutral-800 transition-colors sm:px-10 sm:py-2.5 sm:text-[16px]">
+          <Link to={`/episodes/${prevNext.next.id}`} className="flex items-center justify-center gap-2 bg-black text-white border border-black w-[140px] py-2.5 text-[11px] rounded-none hover:bg-neutral-800 transition-colors sm:w-[226px] sm:py-2.5 sm:text-[16px]">
             Next Episode
             <img src={lineIcon} alt="" className="h-2 invert w-auto" />
           </Link>
         ) : (
-          <span className="flex items-center justify-center gap-2 bg-neutral-400 text-neutral-300 border border-neutral-300 px-4 py-2.5 text-[11px] cursor-not-allowed rounded-none sm:px-10 sm:py-2.5 sm:text-[16px]">
+          <span className="flex items-center justify-center gap-2 bg-neutral-400 text-neutral-300 border border-neutral-300 w-[140px] py-2.5 text-[11px] cursor-not-allowed rounded-none sm:w-[226px] sm:py-2.5 sm:text-[16px]">
             Next Episode
             <img src={lineIcon} alt="" className="h-2 w-auto invert opacity-40" />
           </span>
