@@ -111,7 +111,7 @@ export default function Episodes() {
                         {e.excerpt}
                       </p>
                     )}
-                    <div className="inline-flex items-center gap-2 bg-white px-15 py-2 text-[11px] font-medium text-[#777] border-[#777] border self-start">
+                    <div className="inline-flex items-center gap-2 mt-2 bg-white px-15 py-2 text-[11px] font-medium text-[#777] border-[#777] border self-start">
                       Read
                       <img src={lineIcon} alt="" className="h-1 w-auto" />
                     </div>
