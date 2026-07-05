@@ -93,7 +93,7 @@ export default function Episodes() {
           <p className="text-[14px] text-neutral-400">No episodes found.</p>
         </div>
       ) : (
-        <div className="grid gap-6 grid-cols-4">
+        <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
           {episodes.map((e, i) => {
             const thumb = e.banner_image || extractFirstImage(e.content)
             const initials = (e.category || 'General').slice(0, 2).toUpperCase()
@@ -117,13 +117,8 @@ export default function Episodes() {
                         <span className="font-bebas text-[24px] text-white uppercase tracking-wider">{String(i + 1).padStart(2, '0')}</span>
                       </div>
                     )}
-                    <div className="absolute bottom-3 left-3">
-                      <span className="inline-block bg-white/90 px-2.5 py-1 text-[11px] font-medium text-neutral-700 backdrop-blur-sm">
-                        {e.reading_time} min read
-                      </span>
-                    </div>
                   </div>
-                  <div className="h-[120px] flex flex-col">
+                  <div className="h-[160px] flex flex-col">
                     <h2 className="mt-1 font-bebas text-[22px] uppercase leading-tight tracking-wide text-neutral-900 line-clamp-2">
                       {e.title}
                     </h2>
@@ -131,11 +126,11 @@ export default function Episodes() {
                       <span>{new Date(e.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
                     </div>
                     {e.excerpt && (
-                      <p className="text-[13px] font-novamono leading-[13px] text-neutral-500 line-clamp-2">
+                      <p className="text-[13px] font-novamono leading-[15px] text-neutral-500 line-clamp-2">
                         {e.excerpt}
                       </p>
                     )}
-                    <div className="mt-auto pt-1 inline-flex items-center gap-1 bg-white px-4 py-1.5 text-[11px] font-medium text-black border self-start">
+                    <div className="mt-auto inline-flex items-center gap-2 bg-white px-15 py-2 text-[11px] font-medium text-[#777] border-[#777] border self-start">
                       Read
                       <img src={lineIcon} alt="" className="h-1 w-auto" />
                     </div>

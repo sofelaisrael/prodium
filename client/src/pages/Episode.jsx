@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { api } from '../api'
 import lineIcon from '../assets/line.svg'
+import backlineIcon from '../assets/backline.svg'
 import useLazyVideos from '../components/LazyVideo'
 import Loader from '../components/Loader'
 
@@ -48,58 +49,85 @@ export default function Episode() {
   }
 
   return (
-    <div className="animate-fade-in md:mx-20 py-6">
-      <Link to="/episodes" className="inline-flex items-center gap-1.5 text-[13px] text-neutral-500 hover:text-neutral-900">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="m15 18-6-6 6-6" />
-        </svg>
-        All Episodes
-      </Link>
-
-      <header className="mt-6 mb-8">
-        <div className="flex items-center gap-2 text-[13px] text-neutral-400">
-          <span>{episode.reading_time} min read</span>
-          <span>·</span>
-          <span>{new Date(episode.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+    <div className="animate-fade-in mx-5 md:mx-20 lg:mx-[98px] py-6">
+      {/* Header */}
+      <header className="mb-8">
+        <div className="flex items-center justify-between">
+          <Link to="/episodes" className="inline-flex items-center hover:opacity-70 transition-opacity" style={{ color: 'rgba(0, 0, 0, 0.6)' }}>
+            <img src={backlineIcon} alt="" className="h-2 w-auto" />
+          </Link>
+          <div className="flex items-center gap-3">
+            {prevNext.prev ? (
+              <Link to={`/episodes/${prevNext.prev.id}`} className="flex h-7 w-7 md:h-[28px] md:w-[28px] items-center justify-center rounded-full border border-black transition-colors hover:bg-black hover:text-white">
+                <img src={backlineIcon} alt="" className="h-1.5 w-auto" />
+              </Link>
+            ) : (
+              <span className="flex h-7 w-7 md:h-[28px] md:w-[28px] cursor-not-allowed items-center justify-center rounded-full border border-neutral-200 text-neutral-300">
+                <img src={backlineIcon} alt="" className="h-1.5 w-auto opacity-40" />
+              </span>
+            )}
+            {prevNext.next ? (
+              <Link to={`/episodes/${prevNext.next.id}`} className="flex h-7 w-7 md:h-[28px] md:w-[28px] items-center justify-center rounded-full border border-black transition-colors hover:bg-black hover:text-white">
+                <img src={backlineIcon} alt="" className="h-1.5 w-auto scale-x-[-1]" />
+              </Link>
+            ) : (
+              <span className="flex h-7 w-7 md:h-[28px] md:w-[28px] cursor-not-allowed items-center justify-center rounded-full border border-neutral-200 text-neutral-300">
+                <img src={backlineIcon} alt="" className="h-1.5 w-auto scale-x-[-1] opacity-40" />
+              </span>
+            )}
+          </div>
         </div>
-        <h1 className="mt-2 font-bebas text-[48px] uppercase leading-none tracking-[0.04em] text-neutral-900 md:text-[64px]">
-          {episode.title}
-        </h1>
+        <div className="mt-[31px] md:mt-[81px]">
+          <h1 className="font-bebas text-[36px] md:text-[64px] uppercase leading-none tracking-[0.0022em]" style={{ color: 'rgba(0, 0, 0, 0.87)' }}>
+            {episode.title}
+          </h1>
+          {episode.category && (
+            <p className="mt-2 text-[14px] md:text-[16px] font-novamono" style={{ color: 'rgba(0, 0, 0, 0.5)' }}>
+              {episode.category}
+            </p>
+          )}
+        </div>
       </header>
 
-      {episode.banner_image && (
-        <div className="mb-8 overflow-hidden rounded-2xl">
-          <img src={episode.banner_image} alt="" className="w-full aspect-[21/9] object-cover" />
+      {/* Content card - black border with inner gray */}
+      <div className="rounded-[17px] bg-black p-2 md:p-[17px]">
+        <div className="rounded-[17px] bg-[#F8F8F8] p-5 md:p-10">
+          {/* Banner image */}
+          {episode.banner_image && (
+            <div className="mb-6 md:mb-8 overflow-hidden rounded-[9px] md:rounded-[21px]">
+              <img src={episode.banner_image} alt="" className="w-full aspect-[16/9] md:aspect-[21/9] object-cover" />
+            </div>
+          )}
+          
+          {/* Content */}
+          <div ref={contentRef} className="prose prose-neutral prose-lg font-novamono max-w-none" dangerouslySetInnerHTML={{ __html: episode.content }} />
         </div>
-      )}
-
-      <div className="rounded-2xl border-10 border-black p-6 md:p-10">
-        <div ref={contentRef} className="prose prose-neutral prose-lg font-novamono max-w-none" dangerouslySetInnerHTML={{ __html: episode.content }} />
       </div>
 
-      <div className="flex items-center gap-5 mt-8 py-4">
-          {prevNext.prev ? (
-            <Link to={`/episodes/${prevNext.prev.id}`} className="flex items-center gap-2 border border-neutral-300 px-10 py-2.5 text-[13px] text-black hover:border-neutral-900 hover:text-neutral-900">
-              Read Previous Episode
-              <img src={lineIcon} alt="" className="h-2 w-auto" />
-            </Link>
-          ) : (
-            <span className="flex items-center gap-2 border border-neutral-200 px-10 py-2.5 text-[13px] text-neutral-300 cursor-not-allowed">
-              Read Previous Episode
-              <img src={lineIcon} alt="" className="h-2 w-auto opacity-40" />
-            </span>
-          )}
-          {prevNext.next ? (
-            <Link to={`/episodes/${prevNext.next.id}`} className="flex items-center gap-2 bg-black text-white border border-neutral-300 px-10 py-2.5 text-[13px]">
-              Read Next Episode
-              <img src={lineIcon} alt="" className="h-2 invert w-auto" />
-            </Link>
-          ) : (
-            <span className="flex items-center gap-2 border border-neutral-200 bg-gray-600 px-10 py-2.5 text-[13px] text-neutral-300 cursor-not-allowed">
-              Read Next Episode
-              <img src={lineIcon} alt="" className="h-2 w-auto invert opacity-40" />
-            </span>
-          )}
+      {/* Bottom navigation */}
+      <div className="flex items-center gap-3 mt-8 py-4 sm:gap-5">
+        {prevNext.prev ? (
+          <Link to={`/episodes/${prevNext.prev.id}`} className="flex items-center justify-center gap-2 border border-black px-6 py-3 text-[13px] text-black hover:bg-black hover:text-white transition-colors rounded-none sm:px-10 sm:py-2.5 sm:text-[16px]">
+            Previous Episode
+            <img src={lineIcon} alt="" className="h-2 w-auto" />
+          </Link>
+        ) : (
+          <span className="flex items-center justify-center gap-2 border border-neutral-200 px-6 py-3 text-[13px] text-neutral-300 cursor-not-allowed rounded-none sm:px-10 sm:py-2.5 sm:text-[16px]">
+            Previous Episode
+            <img src={lineIcon} alt="" className="h-2 w-auto opacity-40" />
+          </span>
+        )}
+        {prevNext.next ? (
+          <Link to={`/episodes/${prevNext.next.id}`} className="flex items-center justify-center gap-2 bg-black text-white border border-black px-6 py-3 text-[13px] rounded-none hover:bg-neutral-800 transition-colors sm:px-10 sm:py-2.5 sm:text-[16px]">
+            Next Episode
+            <img src={lineIcon} alt="" className="h-2 invert w-auto" />
+          </Link>
+        ) : (
+          <span className="flex items-center justify-center gap-2 bg-neutral-400 text-neutral-300 border border-neutral-300 px-6 py-3 text-[13px] cursor-not-allowed rounded-none sm:px-10 sm:py-2.5 sm:text-[16px]">
+            Next Episode
+            <img src={lineIcon} alt="" className="h-2 w-auto invert opacity-40" />
+          </span>
+        )}
       </div>
     </div>
   )
