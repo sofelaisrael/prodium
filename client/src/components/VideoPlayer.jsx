@@ -88,7 +88,7 @@ export default function VideoPlayer({ src, className = '' }) {
       video.removeEventListener('progress', onProgress)
       video.removeEventListener('ended', onEnded)
     }
-  }, [videoRef.current, isReady])
+  }, [isReady])
 
   const showControls = useCallback(() => {
     if (!hasStarted) return
@@ -113,7 +113,7 @@ export default function VideoPlayer({ src, className = '' }) {
     const video = videoRef.current
     if (!video) return
     if (video.paused) {
-      video.play()
+      video.play().catch(() => {})
       setHasStarted(true)
       setControlsVisible(true)
     } else {

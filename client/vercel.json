@@ -1,10 +1,6 @@
 {
   "rewrites": [
     {
-      "source": "/episodes/:id",
-      "destination": "https://prodium-server.vercel.app/episodes/:id"
-    },
-    {
       "source": "/(.*)",
       "destination": "/index.html"
     }

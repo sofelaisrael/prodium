@@ -24,10 +24,9 @@ export default function useHls(src) {
     setIsReady(false)
 
     const hlsUrl = toHlsUrl(src)
-    const isNativeHls = video.canPlayType('application/vnd.apple.mpegurl')
 
-    if (isNativeHls) {
-      video.src = hlsUrl
+    const setupNative = (fallbackSrc) => {
+      video.src = fallbackSrc
       const onReady = () => setIsReady(true)
       const onError = () => setError('Failed to load video')
       video.addEventListener('loadeddata', onReady)
@@ -38,62 +37,101 @@ export default function useHls(src) {
         video.removeAttribute('src')
         video.load()
       }
+    }
+
+    const isNativeHls = video.canPlayType('application/vnd.apple.mpegurl')
+    if (isNativeHls) {
+      return setupNative(hlsUrl)
     }
 
     if (!Hls.isSupported()) {
-      video.src = src
-      const onReady = () => setIsReady(true)
-      const onError = () => setError('Failed to load video')
-      video.addEventListener('loadeddata', onReady)
-      video.addEventListener('error', onError)
-      return () => {
-        video.removeEventListener('loadeddata', onReady)
-        video.removeEventListener('error', onError)
-        video.removeAttribute('src')
-        video.load()
-      }
+      return setupNative(src)
     }
 
-    const hls = new Hls({
-      enableWorker: true,
-      lowLatencyMode: false,
-      backBufferLength: 5,
-      maxBufferLength: 10,
-      maxMaxBufferLength: 20,
-      startFragPrefetch: false,
-      testBandwidth: false,
-    })
+    let hls
+    try {
+      hls = new Hls({
+        enableWorker: true,
+        lowLatencyMode: false,
+        backBufferLength: 5,
+        maxBufferLength: 10,
+        maxMaxBufferLength: 20,
+        startFragPrefetch: false,
+        testBandwidth: false,
+        manifestLoadingTimeOut: 10000,
+        manifestLoadingMaxRetry: 3,
+        manifestLoadingRetryDelay: 500,
+        levelLoadingTimeOut: 10000,
+        fragLoadingTimeOut: 20000,
+      })
+    } catch {
+      return setupNative(src)
+    }
 
     hlsRef.current = hls
+
+    let destroyed = false
+    let fallbackDone = false
+
+    const fallbackToNative = () => {
+      if (fallbackDone || destroyed) return
+      fallbackDone = true
+      try { hls.destroy() } catch {}
+      hlsRef.current = null
+      setupNative(src)
+    }
+
     hls.loadSource(hlsUrl)
     hls.attachMedia(video)
 
     hls.on(Hls.Events.MANIFEST_PARSED, () => {
+      if (destroyed) return
       setIsReady(true)
     })
 
     hls.on(Hls.Events.ERROR, (_, data) => {
+      if (destroyed || fallbackDone) return
+
       if (data.fatal) {
         if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
+          if (data.details === Hls.ErrorDetails.MANIFEST_LOAD_ERROR) {
+            fallbackToNative()
+            return
+          }
           hls.startLoad()
         } else if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
-          hls.recoverMediaError()
+          try {
+            hls.recoverMediaError()
+          } catch {
+            fallbackToNative()
+          }
         } else {
-          setError('Playback error')
-          hls.destroy()
+          fallbackToNative()
         }
       }
     })
 
+    hls.on(Hls.Events.MANIFEST_LOADING, () => {})
+
+    hls.on(Hls.Events.MANIFEST_LOADED, (_, data) => {
+      if (destroyed) return
+      if (data.levels && data.levels.length === 0) {
+        fallbackToNative()
+      }
+    })
+
     return () => {
-      hls.destroy()
-      hlsRef.current = null
+      destroyed = true
+      if (hlsRef.current) {
+        try { hlsRef.current.destroy() } catch {}
+        hlsRef.current = null
+      }
     }
   }, [src])
 
   const destroy = useCallback(() => {
     if (hlsRef.current) {
-      hlsRef.current.destroy()
+      try { hlsRef.current.destroy() } catch {}
       hlsRef.current = null
     }
   }, [])
