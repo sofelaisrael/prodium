@@ -77,7 +77,7 @@ export default function Episodes() {
         <div className="grid gap-10 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
           {episodes.map((e, i) => {
             const thumb = e.banner_image || extractFirstImage(e.content)
-            const initials = `EP${i + 1}`
+            const initials = `EP${episodes.length - i}`
             return (
               <Link
                 key={e.id}
@@ -95,7 +95,7 @@ export default function Episodes() {
                     <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
                     {!thumb && (
                       <div className="absolute top-3 left-3">
-                        <span className="font-bebas text-[24px] text-white uppercase tracking-wider">{String(i + 1).padStart(2, '0')}</span>
+                        <span className="font-bebas text-[24px] text-white uppercase tracking-wider">{String(episodes.length - i).padStart(2, '0')}</span>
                       </div>
                     )}
                   </div>
