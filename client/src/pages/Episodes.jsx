@@ -14,6 +14,7 @@ function extractFirstImage(html) {
 export default function Episodes() {
   const [allEpisodes, setAllEpisodes] = useState([])
   const [search, setSearch] = useState('')
+  const [sortDesc, setSortDesc] = useState(true)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
@@ -26,10 +27,21 @@ export default function Episodes() {
       .finally(() => setLoading(false))
   }, [])
 
-  const episodes = allEpisodes.filter(e => {
+  const sorted = [...allEpisodes].sort((a, b) => {
+    const da = new Date(a.created_at).getTime()
+    const db = new Date(b.created_at).getTime()
+    return sortDesc ? db - da : da - db
+  })
+
+  const episodes = sorted.filter(e => {
     if (search && !e.title.toLowerCase().includes(search.toLowerCase())) return false
     return true
   })
+
+  const epNumber = (episode) => {
+    const chronological = [...allEpisodes].sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
+    return chronological.findIndex(e => e.id === episode.id) + 1
+  }
 
   return (
     <div className="animate-fade-in py-12 mx-5 md:mx-20">
@@ -44,8 +56,8 @@ export default function Episodes() {
         </p>
       </div>
 
-      <div className="mb-10">
-        <div className="relative max-w-md">
+      <div className="mb-10 flex items-center gap-3">
+        <div className="relative max-w-md flex-1">
           <svg className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-neutral-300" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <circle cx="11" cy="11" r="8" />
             <path d="m21 21-4.3-4.3" />
@@ -58,6 +70,25 @@ export default function Episodes() {
             className="h-10 w-full border border-neutral-200 bg-white pl-9 pr-4 text-[14px] text-neutral-700 placeholder:text-neutral-400 focus:border-neutral-400 focus:outline-none"
           />
         </div>
+        <button
+          onClick={() => setSortDesc(!sortDesc)}
+          className="h-10 shrink-0 flex items-center gap-1.5 border border-neutral-200 bg-white px-3 text-[13px] text-neutral-600 hover:border-neutral-400 transition-colors"
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            {sortDesc ? (
+              <>
+                <path d="M12 5v14" />
+                <path d="m19 12-7 7-7-7" />
+              </>
+            ) : (
+              <>
+                <path d="M12 19V5" />
+                <path d="m5 12 7-7 7 7" />
+              </>
+            )}
+          </svg>
+          {sortDesc ? 'Newest' : 'Oldest'}
+        </button>
       </div>
 
       {loading ? (
@@ -76,8 +107,9 @@ export default function Episodes() {
       ) : (
         <div className="grid gap-10 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
           {episodes.map((e, i) => {
+            const num = epNumber(e)
             const thumb = e.banner_image || extractFirstImage(e.content)
-            const initials = `EP${episodes.length - i}`
+            const initials = `EP${num}`
             return (
               <Link
                 key={e.id}
@@ -95,7 +127,7 @@ export default function Episodes() {
                     <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
                     {!thumb && (
                       <div className="absolute top-3 left-3">
-                        <span className="font-bebas text-[24px] text-white uppercase tracking-wider">{String(episodes.length - i).padStart(2, '0')}</span>
+                        <span className="font-bebas text-[24px] text-white uppercase tracking-wider">{String(num).padStart(2, '0')}</span>
                       </div>
                     )}
                   </div>
