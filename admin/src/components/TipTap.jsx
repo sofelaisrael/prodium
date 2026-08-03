@@ -247,8 +247,20 @@ const ImageGallery = Node.create({
 
   addAttributes() {
     return {
-      images: { default: [] },
-      columns: { default: 2 },
+      images: {
+        default: [],
+        parseHTML: (element) => {
+          const raw = element.getAttribute('data-images')
+          if (raw) {
+            try { return JSON.parse(raw) } catch { return [] }
+          }
+          return []
+        },
+      },
+      columns: {
+        default: 2,
+        parseHTML: (element) => parseInt(element.getAttribute('data-columns')) || 2,
+      },
     }
   },
 
@@ -257,7 +269,19 @@ const ImageGallery = Node.create({
   },
 
   renderHTML({ HTMLAttributes }) {
-    return ['div', mergeAttributes(HTMLAttributes, { 'data-type': 'imageGallery' })]
+    const { images, columns, ...rest } = HTMLAttributes
+    const imgs = images || []
+    const cols = columns || 2
+    const inner = imgs.map(img =>
+      `<img src="${img.src}" alt="${img.alt || ''}" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:0.5rem" />`
+    ).join('')
+    return ['div', mergeAttributes(rest, {
+      'data-type': 'imageGallery',
+      'data-columns': cols,
+      'data-images': JSON.stringify(imgs),
+      class: 'image-gallery',
+      style: `display:grid;grid-template-columns:repeat(${cols},1fr);gap:0.5rem;margin:1.5em 0`
+    }), inner]
   },
 
   addCommands() {

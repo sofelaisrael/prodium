@@ -21,10 +21,11 @@ export default function Episode() {
       .then(async (ep) => {
         setEpisode(ep)
         const all = await api.getEpisodes()
-        const idx = all.findIndex(e => e.id === ep.id)
+        const chronological = [...all].sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
+        const idx = chronological.findIndex(e => e.id === ep.id)
         setPrevNext({
-          prev: idx > 0 ? all[idx - 1] : null,
-          next: idx < all.length - 1 ? all[idx + 1] : null
+          prev: idx > 0 ? chronological[idx - 1] : null,
+          next: idx < chronological.length - 1 ? chronological[idx + 1] : null
         })
       })
       .catch(err => setError(err.message))

@@ -14,7 +14,7 @@ function extractFirstImage(html) {
 export default function Episodes() {
   const [allEpisodes, setAllEpisodes] = useState([])
   const [search, setSearch] = useState('')
-  const [sortDesc, setSortDesc] = useState(true)
+  const [sortDesc, setSortDesc] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 

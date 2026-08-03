@@ -210,6 +210,19 @@
     max-height: 80vh;
   }
 
+  .image-gallery {
+    display: grid;
+    gap: 0.5rem;
+    margin: 1.5em 0;
+  }
+
+  .image-gallery img {
+    width: 100%;
+    aspect-ratio: 1;
+    object-fit: cover;
+    border-radius: 0.5rem;
+  }
+
   [data-vplayer-root] {
     position: relative;
     border-radius: 0.5em;
