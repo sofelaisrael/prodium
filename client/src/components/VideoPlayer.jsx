@@ -11,14 +11,6 @@ function LoadingSpinner() {
   )
 }
 
-function VideoSkeleton() {
-  return (
-    <div className="absolute inset-0 overflow-hidden bg-neutral-100">
-      <div className="media-skeleton" />
-    </div>
-  )
-}
-
 function BigPlayButton({ onClick }) {
   return (
     <button
@@ -136,7 +128,7 @@ export default function VideoPlayer({ src, className = '' }) {
 
   const togglePlay = useCallback(() => {
     const video = videoRef.current
-    if (!video || !canPlay) return
+    if (!video || error) return
     if (video.paused) {
       video.play().catch(() => {})
       setHasStarted(true)
@@ -144,7 +136,7 @@ export default function VideoPlayer({ src, className = '' }) {
     } else {
       video.pause()
     }
-  }, [videoRef, canPlay])
+  }, [videoRef, error])
 
   const seekTo = useCallback((time) => {
     const video = videoRef.current
@@ -177,7 +169,8 @@ export default function VideoPlayer({ src, className = '' }) {
   return (
     <div
       ref={containerRef}
-      className={`relative group overflow-hidden ${className} ${!canPlay ? 'bg-neutral-100' : 'bg-black'}`}
+      data-vplayer-root
+      className={`relative group overflow-hidden ${className} ${!canPlay && !posterSrc ? 'bg-neutral-100' : 'bg-black'}`}
       onMouseMove={showControls}
       onMouseLeave={() => { if (playing) setControlsVisible(false) }}
       style={{ maxHeight: '80vh', aspectRatio: aspect ? `${aspect}` : '16 / 9' }}
@@ -187,16 +180,14 @@ export default function VideoPlayer({ src, className = '' }) {
         data-vplayer-video
         preload="metadata"
         poster={posterSrc}
-        className={`w-full max-h-[80vh] object-cover cursor-pointer transition-opacity duration-500 ${canPlay || posterSrc ? 'opacity-100' : 'opacity-0'}`}
+        className="w-full h-full object-cover object-center cursor-pointer transition-opacity duration-500 opacity-100"
         playsInline
         onClick={togglePlay}
       />
 
-      {!canPlay && !posterSrc && <VideoSkeleton />}
+      {!hasStarted && !error && <BigPlayButton onClick={togglePlay} />}
 
-      {!hasStarted && canPlay && <BigPlayButton onClick={togglePlay} />}
-
-      {isBuffering && hasStarted && isReady && <LoadingSpinner />}
+      {isBuffering && isReady && <LoadingSpinner />}
 
       {controlsVisible && hasStarted && canPlay && (
         <>

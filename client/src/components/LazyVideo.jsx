@@ -33,7 +33,7 @@ function LazyVideoPlayer({ src }) {
   }, [])
 
   return (
-    <div ref={ref} className="my-6 overflow-hidden rounded-lg" style={{ maxHeight: '80vh' }}>
+    <div ref={ref} className="my-6">
       {!visible && <Skeleton />}
       {visible && <VideoPlayer src={src} />}
     </div>
