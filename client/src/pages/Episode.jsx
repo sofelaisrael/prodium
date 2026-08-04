@@ -4,7 +4,8 @@ import { api } from '../api'
 import lineIcon from '../assets/line.svg'
 import backlineIcon from '../assets/backline.svg'
 import useLazyVideos from '../components/LazyVideo'
-import Loader from '../components/Loader'
+import EpisodeSkeleton from '../components/EpisodeSkeleton'
+import { getSortDesc } from '../sortPref'
 
 export default function Episode() {
   const { id } = useParams()
@@ -21,11 +22,15 @@ export default function Episode() {
       .then(async (ep) => {
         setEpisode(ep)
         const all = await api.getEpisodes()
-        const chronological = [...all].sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
-        const idx = chronological.findIndex(e => e.id === ep.id)
+        const ordered = [...all].sort((a, b) => {
+          const da = new Date(a.created_at).getTime()
+          const db = new Date(b.created_at).getTime()
+          return getSortDesc() ? db - da : da - db
+        })
+        const idx = ordered.findIndex(e => e.id === ep.id)
         setPrevNext({
-          prev: idx > 0 ? chronological[idx - 1] : null,
-          next: idx < chronological.length - 1 ? chronological[idx + 1] : null
+          prev: idx > 0 ? ordered[idx - 1] : null,
+          next: idx >= 0 && idx < ordered.length - 1 ? ordered[idx + 1] : null
         })
       })
       .catch(err => setError(err.message))
@@ -33,11 +38,7 @@ export default function Episode() {
   }, [id])
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center py-32">
-        <Loader />
-      </div>
-    )
+    return <EpisodeSkeleton />
   }
 
   if (error) {
@@ -72,8 +73,8 @@ export default function Episode() {
           </Link>
           <div className="flex items-center gap-3">
             {prevNext.prev ? (
-              <Link to={`/episodes/${prevNext.prev.id}`} className="flex h-7 w-7 md:h-[28px] md:w-[28px] items-center justify-center rounded-full border border-black transition-colors hover:bg-black hover:text-white">
-                <img src={backlineIcon} alt="" className="h-1.5 w-auto" />
+              <Link to={`/episodes/${prevNext.prev.id}`} className="group flex h-7 w-7 md:h-[28px] md:w-[28px] items-center justify-center rounded-full border border-black transition-colors hover:bg-black hover:text-white">
+                <img src={backlineIcon} alt="" className="h-1.5 w-auto group-hover:invert" />
               </Link>
             ) : (
               <span className="flex h-7 w-7 md:h-[28px] md:w-[28px] cursor-not-allowed items-center justify-center rounded-full border border-neutral-200 text-neutral-300">
@@ -81,8 +82,8 @@ export default function Episode() {
               </span>
             )}
             {prevNext.next ? (
-              <Link to={`/episodes/${prevNext.next.id}`} className="flex h-7 w-7 md:h-[28px] md:w-[28px] items-center justify-center rounded-full border border-black transition-colors hover:bg-black hover:text-white">
-                <img src={backlineIcon} alt="" className="h-1.5 w-auto scale-x-[-1]" />
+              <Link to={`/episodes/${prevNext.next.id}`} className="group flex h-7 w-7 md:h-[28px] md:w-[28px] items-center justify-center rounded-full border border-black transition-colors hover:bg-black hover:text-white">
+                <img src={backlineIcon} alt="" className="h-1.5 w-auto scale-x-[-1] group-hover:invert" />
               </Link>
             ) : (
               <span className="flex h-7 w-7 md:h-[28px] md:w-[28px] cursor-not-allowed items-center justify-center rounded-full border border-neutral-200 text-neutral-300">
@@ -109,9 +110,9 @@ export default function Episode() {
       {/* Bottom navigation */}
       <div className="flex items-center gap-3 mt-8 py-4 sm:gap-5">
         {prevNext.prev ? (
-          <Link to={`/episodes/${prevNext.prev.id}`} className="flex items-center justify-center gap-2 border border-black w-[140px] py-2.5 text-[11px] text-black hover:bg-black hover:text-white transition-colors rounded-none sm:w-[226px] sm:py-2.5 sm:text-[16px]">
+          <Link to={`/episodes/${prevNext.prev.id}`} className="group flex items-center justify-center gap-2 border border-black w-[140px] py-2.5 text-[11px] text-black hover:bg-black hover:text-white transition-colors rounded-none sm:w-[226px] sm:py-2.5 sm:text-[16px]">
             Previous Episode
-            <img src={lineIcon} alt="" className="h-2 w-auto" />
+            <img src={lineIcon} alt="" className="h-2 w-auto group-hover:invert" />
           </Link>
         ) : (
           <span className="flex items-center justify-center gap-2 border border-neutral-200 w-[140px] py-2.5 text-[11px] text-neutral-300 cursor-not-allowed rounded-none sm:w-[226px] sm:py-2.5 sm:text-[16px]">

@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom'
 import { api } from '../api'
 import lineIcon from '../assets/line.svg'
 import Blob from '../components/Blob'
+import ImageWithSkeleton from '../components/ImageWithSkeleton'
 import Loader from '../components/Loader'
 
 function extractFirstImage(html) {
@@ -85,7 +86,7 @@ export default function Project() {
                 <div className="overflow-hidden bg-white">
                   <div className={`relative bg-neutral-100 rounded-md border overflow-hidden ${i === 0 ? 'aspect-[21/15]' : 'aspect-[16/10]'}`}>
                     {thumb ? (
-                      <img src={thumb} alt="" className="h-full w-full object-cover" />
+                      <ImageWithSkeleton src={thumb} alt="" className="h-full w-full" />
                     ) : (
                       <Blob id={e.id} className="h-full w-full" />
                     )}

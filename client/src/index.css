@@ -223,6 +223,28 @@
     border-radius: 0.5rem;
   }
 
+  @keyframes media-shimmer {
+    100% {
+      transform: translateX(100%);
+    }
+  }
+
+  .media-skeleton {
+    position: absolute;
+    inset: 0;
+    background-color: rgb(229 229 229);
+    overflow: hidden;
+  }
+
+  .media-skeleton::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    transform: translateX(-100%);
+    background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.45), transparent);
+    animation: media-shimmer 1.8s ease-in-out infinite;
+  }
+
   [data-vplayer-root] {
     position: relative;
     border-radius: 0.5em;

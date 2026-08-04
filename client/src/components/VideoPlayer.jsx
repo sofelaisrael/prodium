@@ -6,7 +6,15 @@ import Controls from './player/Controls'
 function LoadingSpinner() {
   return (
     <div className="absolute inset-0 z-10 flex items-center justify-center pointer-events-none">
-      <div className="w-10 h-10 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+      <div className="w-8 h-8 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+    </div>
+  )
+}
+
+function VideoSkeleton() {
+  return (
+    <div className="absolute inset-0 overflow-hidden bg-neutral-100">
+      <div className="media-skeleton" />
     </div>
   )
 }
@@ -28,7 +36,7 @@ function BigPlayButton({ onClick }) {
 
 export default function VideoPlayer({ src, className = '' }) {
   const containerRef = useRef(null)
-  const { videoRef, isReady, error } = useHls(src)
+  const { videoRef, isReady, canPlay, error } = useHls(src)
 
   const [playing, setPlaying] = useState(false)
   const [currentTime, setCurrentTime] = useState(0)
@@ -39,12 +47,20 @@ export default function VideoPlayer({ src, className = '' }) {
   const [isBuffering, setIsBuffering] = useState(false)
   const [controlsVisible, setControlsVisible] = useState(false)
   const [hasStarted, setHasStarted] = useState(false)
+  const [aspect, setAspect] = useState(null)
 
   const hideTimer = useRef(null)
 
   useEffect(() => {
     const video = videoRef.current
     if (!video) return
+
+    const updateAspect = () => {
+      if (video.videoWidth && video.videoHeight) {
+        setAspect(video.videoWidth / video.videoHeight)
+      }
+    }
+    updateAspect()
 
     const onPlay = () => setPlaying(true)
     const onPause = () => setPlaying(false)
@@ -76,6 +92,8 @@ export default function VideoPlayer({ src, className = '' }) {
     video.addEventListener('playing', onPlaying)
     video.addEventListener('progress', onProgress)
     video.addEventListener('ended', onEnded)
+    video.addEventListener('loadedmetadata', updateAspect)
+    video.addEventListener('resize', updateAspect)
 
     return () => {
       video.removeEventListener('play', onPlay)
@@ -87,6 +105,8 @@ export default function VideoPlayer({ src, className = '' }) {
       video.removeEventListener('playing', onPlaying)
       video.removeEventListener('progress', onProgress)
       video.removeEventListener('ended', onEnded)
+      video.removeEventListener('loadedmetadata', updateAspect)
+      video.removeEventListener('resize', updateAspect)
     }
   }, [isReady])
 
@@ -111,7 +131,7 @@ export default function VideoPlayer({ src, className = '' }) {
 
   const togglePlay = useCallback(() => {
     const video = videoRef.current
-    if (!video) return
+    if (!video || !canPlay) return
     if (video.paused) {
       video.play().catch(() => {})
       setHasStarted(true)
@@ -119,7 +139,7 @@ export default function VideoPlayer({ src, className = '' }) {
     } else {
       video.pause()
     }
-  }, [videoRef])
+  }, [videoRef, canPlay])
 
   const seekTo = useCallback((time) => {
     const video = videoRef.current
@@ -152,23 +172,27 @@ export default function VideoPlayer({ src, className = '' }) {
   return (
     <div
       ref={containerRef}
-      className={`relative bg-black group ${className}`}
+      className={`relative group overflow-hidden ${className} ${!canPlay ? 'bg-neutral-100' : 'bg-black'}`}
       onMouseMove={showControls}
       onMouseLeave={() => { if (playing) setControlsVisible(false) }}
-      style={{ maxHeight: '80vh' }}
+      style={{ maxHeight: '80vh', aspectRatio: aspect ? `${aspect}` : '16 / 9' }}
     >
       <video
         ref={videoRef}
-        className="w-full max-h-[80vh] object-cover cursor-pointer"
+        data-vplayer-video
+        preload="metadata"
+        className={`w-full max-h-[80vh] object-cover cursor-pointer transition-opacity duration-500 ${canPlay ? 'opacity-100' : 'opacity-0'}`}
         playsInline
         onClick={togglePlay}
       />
 
-      {!hasStarted && isReady && <BigPlayButton onClick={togglePlay} />}
+      {!canPlay && <VideoSkeleton />}
+
+      {!hasStarted && canPlay && <BigPlayButton onClick={togglePlay} />}
 
       {isBuffering && hasStarted && isReady && <LoadingSpinner />}
 
-      {controlsVisible && hasStarted && isReady && (
+      {controlsVisible && hasStarted && canPlay && (
         <>
           <Seekbar
             currentTime={currentTime}

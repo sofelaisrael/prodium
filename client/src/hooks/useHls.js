@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import Hls from 'hls.js'
 
-function toHlsUrl(src) {
+function toMp4(src) {
   if (!src) return src
-  if (/\.m3u8(\?|$)/.test(src)) return src
-  if (/cloudinary\.com/.test(src) && /\.(mp4|mov|avi|mkv|webm|flv|wmv|m4v)(\?|$)/.test(src)) {
-    return src.replace(/\.(mp4|mov|avi|mkv|webm|flv|wmv|m4v)(\?|$)/, '.m3u8$1')
+  if (/cloudinary\.com/.test(src)) {
+    if (/\.m3u8$/i.test(src)) return src.replace(/\.m3u8$/i, '.mp4')
+    if (/\.(mov|avi|mkv|flv|wmv|webm|m4v)$/i.test(src)) {
+      return src.replace(/\.(mov|avi|mkv|flv|wmv|webm|m4v)$/i, '.mp4')
+    }
   }
   return src
 }
@@ -14,6 +16,7 @@ export default function useHls(src) {
   const videoRef = useRef(null)
   const hlsRef = useRef(null)
   const [isReady, setIsReady] = useState(false)
+  const [canPlay, setCanPlay] = useState(false)
   const [error, setError] = useState(null)
 
   useEffect(() => {
@@ -22,29 +25,40 @@ export default function useHls(src) {
 
     setError(null)
     setIsReady(false)
+    setCanPlay(false)
 
-    const hlsUrl = toHlsUrl(src)
+    // Cloudinary sources play the H.264 .mp4 directly (HLS/transcodes are
+    // unreliable there). Only plain .m3u8 sources use hls.js.
+    const isCloudinary = /cloudinary\.com/.test(src)
+    const isPlainHls = /\.m3u8(\?|$)/.test(src) && !isCloudinary
+    const nativeSrc = isCloudinary ? toMp4(src) : src
 
-    const setupNative = (fallbackSrc) => {
-      video.src = fallbackSrc
-      const onReady = () => setIsReady(true)
+    const onReady = () => setIsReady(true)
+    const onFrameReady = () => setCanPlay(true)
+
+    const setupNative = (initialSrc) => {
       const onError = () => setError('Failed to load video')
+      video.src = initialSrc
       video.addEventListener('loadeddata', onReady)
+      video.addEventListener('loadeddata', onFrameReady)
+      video.addEventListener('canplay', onFrameReady)
       video.addEventListener('error', onError)
       return () => {
         video.removeEventListener('loadeddata', onReady)
+        video.removeEventListener('loadeddata', onFrameReady)
+        video.removeEventListener('canplay', onFrameReady)
         video.removeEventListener('error', onError)
         video.removeAttribute('src')
         video.load()
       }
     }
 
-    const isNativeHls = video.canPlayType('application/vnd.apple.mpegurl')
-    if (isNativeHls) {
-      return setupNative(hlsUrl)
+    if (!isPlainHls || !Hls.isSupported()) {
+      return setupNative(nativeSrc)
     }
 
-    if (!Hls.isSupported()) {
+    const isNativeHls = video.canPlayType('application/vnd.apple.mpegurl')
+    if (isNativeHls) {
       return setupNative(src)
     }
 
@@ -54,47 +68,63 @@ export default function useHls(src) {
         enableWorker: true,
         lowLatencyMode: false,
         backBufferLength: 5,
-        maxBufferLength: 10,
-        maxMaxBufferLength: 20,
-        startFragPrefetch: false,
+        maxBufferLength: 4,
+        maxMaxBufferLength: 8,
+        startFragPrefetch: true,
         testBandwidth: false,
         manifestLoadingTimeOut: 10000,
-        manifestLoadingMaxRetry: 3,
+        manifestLoadingMaxRetry: 2,
         manifestLoadingRetryDelay: 500,
         levelLoadingTimeOut: 10000,
         fragLoadingTimeOut: 20000,
       })
     } catch {
-      return setupNative(src)
+      return setupNative(nativeSrc)
     }
 
     hlsRef.current = hls
 
     let destroyed = false
     let fallbackDone = false
+    let fatalCount = 0
 
     const fallbackToNative = () => {
       if (fallbackDone || destroyed) return
       fallbackDone = true
       try { hls.destroy() } catch {}
       hlsRef.current = null
-      setupNative(src)
+      video.removeEventListener('loadeddata', onFrameReady)
+      video.removeEventListener('canplay', onFrameReady)
+      setupNative(nativeSrc)
     }
 
-    hls.loadSource(hlsUrl)
+    hls.loadSource(src)
     hls.attachMedia(video)
+
+    video.addEventListener('loadeddata', onFrameReady)
+    video.addEventListener('canplay', onFrameReady)
 
     hls.on(Hls.Events.MANIFEST_PARSED, () => {
       if (destroyed) return
       setIsReady(true)
     })
 
+    hls.on(Hls.Events.FRAG_LOADED, () => {
+      if (destroyed) return
+      fatalCount = 0
+    })
+
     hls.on(Hls.Events.ERROR, (_, data) => {
       if (destroyed || fallbackDone) return
 
       if (data.fatal) {
+        fatalCount += 1
         if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
           if (data.details === Hls.ErrorDetails.MANIFEST_LOAD_ERROR) {
+            fallbackToNative()
+            return
+          }
+          if (fatalCount >= 2) {
             fallbackToNative()
             return
           }
@@ -111,8 +141,6 @@ export default function useHls(src) {
       }
     })
 
-    hls.on(Hls.Events.MANIFEST_LOADING, () => {})
-
     hls.on(Hls.Events.MANIFEST_LOADED, (_, data) => {
       if (destroyed) return
       if (data.levels && data.levels.length === 0) {
@@ -122,6 +150,8 @@ export default function useHls(src) {
 
     return () => {
       destroyed = true
+      video.removeEventListener('loadeddata', onFrameReady)
+      video.removeEventListener('canplay', onFrameReady)
       if (hlsRef.current) {
         try { hlsRef.current.destroy() } catch {}
         hlsRef.current = null
@@ -136,5 +166,5 @@ export default function useHls(src) {
     }
   }, [])
 
-  return { videoRef, isReady, error, destroy }
+  return { videoRef, isReady, canPlay, error, destroy }
 }

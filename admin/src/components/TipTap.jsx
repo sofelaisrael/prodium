@@ -145,6 +145,101 @@ const UploadPlaceholder = Node.create({
   },
 })
 
+const GALLERY_LAYOUTS = [
+  { id: 'grid', label: 'Grid' },
+  { id: 'featured', label: 'Featured' },
+  { id: 'vertical', label: 'Vertical' },
+  { id: 'horizontal', label: 'Horizontal' },
+]
+
+function assignLetters(rows, start) {
+  let idx = start
+  rows.forEach(r => r.forEach((cell, ci) => {
+    if (cell === 'x') {
+      const letter = String.fromCharCode(97 + idx)
+      r[ci] = letter
+      idx++
+    }
+  }))
+}
+
+function galleryAreas(layout, count) {
+  switch (layout) {
+    case 'featured': {
+      const rows = [['a', 'a', 'b'], ['a', 'a', 'c']]
+      let rest = count - 3
+      while (rest > 0) {
+        const row = ['.', '.', '.']
+        for (let c = 0; c < 3 && rest > 0; c++, rest--) row[c] = 'x'
+        rows.push(row)
+      }
+      assignLetters(rows, 3)
+      return { columns: 3, rows }
+    }
+    case 'vertical': {
+      if (count <= 2) return { columns: 2, rows: [['a', 'b'], ['a', '.']] }
+      if (count === 3) return { columns: 2, rows: [['a', 'b'], ['a', 'c']] }
+      const rows = [['a', 'b'], ['a', 'c'], ['a', 'd']]
+      let rest = count - 4
+      while (rest > 0) {
+        const row = ['.', '.']
+        for (let c = 0; c < 2 && rest > 0; c++, rest--) row[c] = 'x'
+        rows.push(row)
+      }
+      assignLetters(rows, 4)
+      return { columns: 2, rows }
+    }
+    case 'horizontal': {
+      if (count <= 2) return { columns: 2, rows: [['a', 'a'], ['b', '.']] }
+      const rows = [['a', 'a', 'a']]
+      let rest = count - 1
+      while (rest > 0) {
+        const row = ['.', '.', '.']
+        for (let c = 0; c < 3 && rest > 0; c++, rest--) row[c] = 'x'
+        rows.push(row)
+      }
+      assignLetters(rows, 1)
+      return { columns: 3, rows }
+    }
+    default:
+      return null
+  }
+}
+
+function galleryGrid(layout, columns, count) {
+  if (layout === 'grid') {
+    return {
+      css: { display: 'grid', gridTemplateColumns: `repeat(${columns}, 1fr)`, gap: '0.5rem', margin: '1.5em 0' },
+      areas: null,
+    }
+  }
+  const data = galleryAreas(layout, count)
+  if (!data) return galleryGrid('grid', columns, count)
+  const letters = []
+  data.rows.forEach(r => r.forEach(c => { if (c && c !== '.' && !letters.includes(c)) letters.push(c) }))
+  return {
+    css: {
+      display: 'grid',
+      gridTemplateColumns: `repeat(${data.columns}, 1fr)`,
+      gridTemplateAreas: data.rows.map(r => `"${r.map(c => c || '.').join(' ')}"`).join(' '),
+      gridAutoRows: 'minmax(0, 1fr)',
+      aspectRatio: `${data.columns} / ${data.rows.length}`,
+      gap: '0.5rem',
+      margin: '1.5em 0',
+    },
+    areas: letters,
+  }
+}
+
+function galleryCssString(css) {
+  return Object.entries(css).map(([k, v]) => `${k.replace(/([A-Z])/g, '-$1').toLowerCase()}:${v}`).join(';')
+}
+
+function galleryImgStyle(areas, i) {
+  if (areas) return `grid-area:${areas[i]};width:100%;height:100%;object-fit:cover;border-radius:0.5rem`
+  return 'width:100%;aspect-ratio:1;object-fit:cover;border-radius:0.5rem'
+}
+
 function ImageGalleryNodeView({ node, updateAttributes }) {
   const [dragged, setDragged] = useState(null)
   const [over, setOver] = useState(null)
@@ -182,6 +277,11 @@ function ImageGalleryNodeView({ node, updateAttributes }) {
     updateAttributes({ images: arr })
   }
 
+  const layout = node.attrs.layout || 'grid'
+  const columns = node.attrs.columns || 2
+  const { css, areas } = galleryGrid(layout, columns, images.length)
+  const imgClassName = layout === 'grid' ? 'w-full aspect-square object-cover' : 'w-full h-full object-cover'
+
   if (!images.length) {
     return (
       <NodeViewWrapper>
@@ -197,7 +297,7 @@ function ImageGalleryNodeView({ node, updateAttributes }) {
   return (
     <NodeViewWrapper>
       <div className="my-4 rounded-xl border border-neutral-100 p-3">
-        <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${node.attrs.columns || 2}, 1fr)` }}>
+        <div className="grid gap-2" style={css}>
           {images.map((img, i) => (
             <div
               key={i}
@@ -206,9 +306,10 @@ function ImageGalleryNodeView({ node, updateAttributes }) {
               onDragOver={e => onDragOver(e, i)}
               onDrop={e => onDrop(e, i)}
               onDragEnd={onDragEnd}
+              style={areas ? { gridArea: areas[i] } : undefined}
               className={`relative group rounded-lg overflow-hidden cursor-move ${over === i ? 'ring-2 ring-blue-500' : ''} ${dragged === i ? 'opacity-40' : ''}`}
             >
-              <img src={img.src} alt={img.alt || ''} className="w-full aspect-square object-cover" />
+              <img src={img.src} alt={img.alt || ''} className={imgClassName} />
               <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
                 <div className="flex gap-1">
                   <button onClick={() => moveImage(i, -1)} className="rounded bg-white/90 p-1 hover:bg-white" title="Move left">
@@ -225,11 +326,24 @@ function ImageGalleryNodeView({ node, updateAttributes }) {
             </div>
           ))}
         </div>
-        <div className="mt-2 flex items-center gap-2">
+        <div className="mt-3 flex flex-wrap items-center gap-2">
           <button onClick={() => fileRef.current?.click()} className="rounded-lg border border-neutral-200 px-3 py-1.5 text-xs text-neutral-600 hover:bg-neutral-50">+ Add images</button>
+          {layout === 'grid' && (
+            <div className="flex items-center gap-1">
+              {[2, 3, 4].map(n => (
+                <button key={n} onClick={() => updateAttributes({ columns: n })} className={`rounded px-2 py-1 text-xs ${columns === n ? 'bg-neutral-900 text-white' : 'text-neutral-500 hover:bg-neutral-100'}`}>{n}</button>
+              ))}
+            </div>
+          )}
           <div className="flex items-center gap-1 ml-auto">
-            {[2, 3, 4].map(n => (
-              <button key={n} onClick={() => updateAttributes({ columns: n })} className={`rounded px-2 py-1 text-xs ${node.attrs.columns === n ? 'bg-neutral-900 text-white' : 'text-neutral-500 hover:bg-neutral-100'}`}>{n}</button>
+            {GALLERY_LAYOUTS.map(l => (
+              <button
+                key={l.id}
+                onClick={() => updateAttributes({ layout: l.id })}
+                className={`rounded px-2 py-1 text-xs ${layout === l.id ? 'bg-neutral-900 text-white' : 'text-neutral-500 hover:bg-neutral-100'}`}
+              >
+                {l.label}
+              </button>
             ))}
           </div>
           <input ref={fileRef} type="file" accept="image/*" multiple className="hidden" onChange={e => { addImages(e.target.files); e.target.value = '' }} />
@@ -261,6 +375,10 @@ const ImageGallery = Node.create({
         default: 2,
         parseHTML: (element) => parseInt(element.getAttribute('data-columns')) || 2,
       },
+      layout: {
+        default: 'grid',
+        parseHTML: (element) => element.getAttribute('data-layout') || 'grid',
+      },
     }
   },
 
@@ -268,26 +386,36 @@ const ImageGallery = Node.create({
     return [{ tag: 'div[data-type="imageGallery"]' }]
   },
 
-  renderHTML({ HTMLAttributes }) {
-    const { images, columns, ...rest } = HTMLAttributes
-    const imgs = images || []
-    const cols = columns || 2
-    const inner = imgs.map(img =>
-      `<img src="${img.src}" alt="${img.alt || ''}" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:0.5rem" />`
-    ).join('')
-    return ['div', mergeAttributes(rest, {
-      'data-type': 'imageGallery',
-      'data-columns': cols,
-      'data-images': JSON.stringify(imgs),
-      class: 'image-gallery',
-      style: `display:grid;grid-template-columns:repeat(${cols},1fr);gap:0.5rem;margin:1.5em 0`
-    }), inner]
+  renderHTML({ node, HTMLAttributes }) {
+    const { images = [], columns = 2, layout = 'grid' } = node.attrs || {}
+    const { images: _img, columns: _col, layout: _lay, ...rest } = HTMLAttributes
+    const { css, areas } = galleryGrid(layout, columns, images.length)
+    const inner = images.map((img, i) => [
+      'img',
+      {
+        src: img.src || '',
+        alt: img.alt || '',
+        style: galleryImgStyle(areas, i),
+      },
+    ])
+    return [
+      'div',
+      mergeAttributes(rest, {
+        'data-type': 'imageGallery',
+        'data-columns': String(columns),
+        'data-layout': layout,
+        'data-images': JSON.stringify(images),
+        class: 'image-gallery',
+        style: galleryCssString(css),
+      }),
+      ...inner,
+    ]
   },
 
   addCommands() {
     return {
       setImageGallery: () => ({ commands }) => {
-        return commands.insertContent({ type: 'imageGallery', attrs: { images: [], columns: 2 } })
+        return commands.insertContent({ type: 'imageGallery', attrs: { images: [], columns: 2, layout: 'grid' } })
       },
     }
   },
