@@ -38,6 +38,11 @@ export default function VideoPlayer({ src, className = '' }) {
   const containerRef = useRef(null)
   const { videoRef, isReady, canPlay, error } = useHls(src)
 
+  const posterSrc = (() => {
+    if (!src || !/cloudinary\.com/.test(src)) return undefined
+    return src.replace(/\.(mp4|mov|avi|mkv|flv|wmv|webm|m4v)([?#].*)?$/i, '.jpg')
+  })()
+
   const [playing, setPlaying] = useState(false)
   const [currentTime, setCurrentTime] = useState(0)
   const [duration, setDuration] = useState(0)
@@ -181,12 +186,13 @@ export default function VideoPlayer({ src, className = '' }) {
         ref={videoRef}
         data-vplayer-video
         preload="metadata"
-        className={`w-full max-h-[80vh] object-cover cursor-pointer transition-opacity duration-500 ${canPlay ? 'opacity-100' : 'opacity-0'}`}
+        poster={posterSrc}
+        className={`w-full max-h-[80vh] object-cover cursor-pointer transition-opacity duration-500 ${canPlay || posterSrc ? 'opacity-100' : 'opacity-0'}`}
         playsInline
         onClick={togglePlay}
       />
 
-      {!canPlay && <VideoSkeleton />}
+      {!canPlay && !posterSrc && <VideoSkeleton />}
 
       {!hasStarted && canPlay && <BigPlayButton onClick={togglePlay} />}
 

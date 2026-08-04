@@ -3,11 +3,12 @@ import Hls from 'hls.js'
 
 function toMp4(src) {
   if (!src) return src
-  if (/cloudinary\.com/.test(src)) {
-    if (/\.m3u8$/i.test(src)) return src.replace(/\.m3u8$/i, '.mp4')
-    if (/\.(mov|avi|mkv|flv|wmv|webm|m4v)$/i.test(src)) {
-      return src.replace(/\.(mov|avi|mkv|flv|wmv|webm|m4v)$/i, '.mp4')
-    }
+  if (!/cloudinary\.com/.test(src)) return src
+  if (/\.m3u8$/i.test(src)) return src.replace(/\.m3u8$/i, '.mp4')
+  if (/\.(mov|avi|mkv|flv|wmv|webm|m4v)$/i.test(src)) {
+    const mp4 = src.replace(/\.(mov|avi|mkv|flv|wmv|webm|m4v)$/i, '.mp4')
+    if (!/\/video\/upload\//.test(mp4) || /f_mp4|w_\d+|q_auto/.test(mp4)) return mp4
+    return mp4.replace('/video/upload/', '/video/upload/f_mp4,w_1920,c_limit,q_auto:good/')
   }
   return src
 }
