@@ -1,21 +1,11 @@
-import { useEffect, useRef, useState, useCallback } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Hls from 'hls.js'
+import { cloudinaryToPlayableUrl } from '../utils/videoUrl'
 
-function toMp4(src) {
-  if (!src) return src
-  if (!/cloudinary\.com/.test(src)) return src
-  if (/\.m3u8$/i.test(src)) return src.replace(/\.m3u8$/i, '.mp4')
-  if (/\.(mov|avi|mkv|flv|wmv|webm|m4v)$/i.test(src)) {
-    const mp4 = src.replace(/\.(mov|avi|mkv|flv|wmv|webm|m4v)$/i, '.mp4')
-    if (!/\/video\/upload\//.test(mp4) || /f_mp4|w_\d+|q_auto/.test(mp4)) return mp4
-    return mp4.replace('/video/upload/', '/video/upload/f_mp4,w_1920,c_limit,q_auto:good/')
-  }
-  return src
-}
-
-export default function useHls(src) {
+export default function useHls(src, retryKey = 0) {
   const videoRef = useRef(null)
   const hlsRef = useRef(null)
+  const retryRef = useRef(null)
   const [isReady, setIsReady] = useState(false)
   const [canPlay, setCanPlay] = useState(false)
   const [error, setError] = useState(null)
@@ -23,6 +13,12 @@ export default function useHls(src) {
   useEffect(() => {
     const video = videoRef.current
     if (!video || !src) return
+
+    // Only ever hand the media element standard web protocols.
+    if (typeof src === 'string' && !/^(https?:|blob:|file:)/.test(src)) {
+      setError('Unsupported video source')
+      return
+    }
 
     setError(null)
     setIsReady(false)
@@ -32,21 +28,52 @@ export default function useHls(src) {
     // unreliable there). Only plain .m3u8 sources use hls.js.
     const isCloudinary = /cloudinary\.com/.test(src)
     const isPlainHls = /\.m3u8(\?|$)/.test(src) && !isCloudinary
-    const nativeSrc = isCloudinary ? toMp4(src) : src
+    const transcodeSrc = isCloudinary ? cloudinaryToPlayableUrl(src) : src
 
-    const onReady = () => setIsReady(true)
-    const onFrameReady = () => setCanPlay(true)
+    let destroyed = false
 
-    const setupNative = (initialSrc) => {
-      const onError = () => setError('Failed to load video')
-      video.src = initialSrc
-      video.addEventListener('loadeddata', onReady)
-      video.addEventListener('loadeddata', onFrameReady)
+    let nativeCleanup = null
+
+    const onReady = () => { if (!destroyed) setIsReady(true) }
+    const onFrameReady = () => { if (!destroyed) setCanPlay(true) }
+
+    const setupNative = (primarySrc, fallbackSrc = null) => {
+      let attempts = 0
+      let usingFallback = false
+      const onLoadedData = () => { onReady(); onFrameReady() }
+      const loadSrc = (s) => { video.src = s; video.load() }
+      const onError = () => {
+        if (destroyed) return
+        const code = video.error ? video.error.code : 0
+        // Unsupported codec -> swap to the H.264 transcoded URL, once.
+        if (code === 4) {
+          if (fallbackSrc && !usingFallback && fallbackSrc !== primarySrc) {
+            usingFallback = true
+            loadSrc(fallbackSrc)
+            return
+          }
+          setError('Failed to load video')
+          return
+        }
+        // Aborted by the browser (e.g. a newer load won) -> ignore.
+        if (code === 1) return
+        // Network / decode errors -> bounded retry of the same (active) source.
+        attempts += 1
+        if (attempts >= 3) { setError('Failed to load video'); return }
+        clearTimeout(retryRef.current)
+        retryRef.current = setTimeout(() => {
+          if (destroyed) return
+          loadSrc(usingFallback ? fallbackSrc : primarySrc)
+        }, 900)
+      }
+      video.addEventListener('loadeddata', onLoadedData)
       video.addEventListener('canplay', onFrameReady)
       video.addEventListener('error', onError)
+      loadSrc(primarySrc)
       return () => {
-        video.removeEventListener('loadeddata', onReady)
-        video.removeEventListener('loadeddata', onFrameReady)
+        destroyed = true
+        clearTimeout(retryRef.current)
+        video.removeEventListener('loadeddata', onLoadedData)
         video.removeEventListener('canplay', onFrameReady)
         video.removeEventListener('error', onError)
         video.removeAttribute('src')
@@ -55,7 +82,8 @@ export default function useHls(src) {
     }
 
     if (!isPlainHls || !Hls.isSupported()) {
-      return setupNative(nativeSrc)
+      const nativeHandled = setupNative(src, isCloudinary ? transcodeSrc : null)
+      return nativeHandled
     }
 
     const isNativeHls = video.canPlayType('application/vnd.apple.mpegurl')
@@ -80,12 +108,11 @@ export default function useHls(src) {
         fragLoadingTimeOut: 20000,
       })
     } catch {
-      return setupNative(nativeSrc)
+      return setupNative(isCloudinary ? transcodeSrc : src)
     }
 
     hlsRef.current = hls
 
-    let destroyed = false
     let fallbackDone = false
     let fatalCount = 0
 
@@ -96,7 +123,7 @@ export default function useHls(src) {
       hlsRef.current = null
       video.removeEventListener('loadeddata', onFrameReady)
       video.removeEventListener('canplay', onFrameReady)
-      setupNative(nativeSrc)
+      nativeCleanup = setupNative(isCloudinary ? transcodeSrc : src)
     }
 
     hls.loadSource(src)
@@ -151,6 +178,8 @@ export default function useHls(src) {
 
     return () => {
       destroyed = true
+      if (nativeCleanup) nativeCleanup()
+      clearTimeout(retryRef.current)
       video.removeEventListener('loadeddata', onFrameReady)
       video.removeEventListener('canplay', onFrameReady)
       if (hlsRef.current) {
@@ -158,14 +187,7 @@ export default function useHls(src) {
         hlsRef.current = null
       }
     }
-  }, [src])
+  }, [src, retryKey])
 
-  const destroy = useCallback(() => {
-    if (hlsRef.current) {
-      try { hlsRef.current.destroy() } catch {}
-      hlsRef.current = null
-    }
-  }, [])
-
-  return { videoRef, isReady, canPlay, error, destroy }
+  return { videoRef, isReady, canPlay, error }
 }

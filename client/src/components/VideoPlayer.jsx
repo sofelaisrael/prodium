@@ -28,7 +28,8 @@ function BigPlayButton({ onClick }) {
 
 export default function VideoPlayer({ src, className = '' }) {
   const containerRef = useRef(null)
-  const { videoRef, isReady, canPlay, error } = useHls(src)
+  const [retryKey, setRetryKey] = useState(0)
+  const { videoRef, isReady, canPlay, error } = useHls(src, retryKey)
 
   const posterSrc = (() => {
     if (!src || !/cloudinary\.com/.test(src)) return undefined
@@ -158,14 +159,6 @@ export default function VideoPlayer({ src, className = '' }) {
     video.muted = !video.muted
   }, [videoRef])
 
-  if (error) {
-    return (
-      <div className={`relative bg-neutral-100 flex items-center justify-center ${className}`} style={{ minHeight: 200 }}>
-        <p className="text-sm text-neutral-500">{error}</p>
-      </div>
-    )
-  }
-
   return (
     <div
       ref={containerRef}
@@ -180,34 +173,47 @@ export default function VideoPlayer({ src, className = '' }) {
         data-vplayer-video
         preload="metadata"
         poster={posterSrc}
-        className="w-full h-full object-cover object-center cursor-pointer transition-opacity duration-500 opacity-100"
+        className="absolute inset-0 h-full w-full object-cover object-center cursor-pointer transition-opacity duration-500 opacity-100"
         playsInline
         onClick={togglePlay}
       />
 
-      {!hasStarted && !error && <BigPlayButton onClick={togglePlay} />}
-
-      {isBuffering && isReady && <LoadingSpinner />}
-
-      {controlsVisible && hasStarted && canPlay && (
+      {error ? (
+        <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 bg-neutral-100">
+          <p className="text-sm text-neutral-500">{error}</p>
+          <button
+            type="button"
+            onClick={() => setRetryKey(k => k + 1)}
+            className="rounded-full border border-neutral-300 px-4 py-1.5 text-xs text-neutral-600 hover:bg-neutral-200 transition-colors"
+          >
+            Try again
+          </button>
+        </div>
+      ) : (
         <>
-          <Seekbar
-            currentTime={currentTime}
-            duration={duration}
-            buffered={buffered}
-            onSeek={seekTo}
-          />
-          <Controls
-            playing={playing}
-            currentTime={currentTime}
-            duration={duration}
-            volume={volume}
-            muted={muted}
-            onPlayPause={togglePlay}
-            onVolumeChange={handleVolumeChange}
-            onToggleMute={toggleMute}
-            containerRef={containerRef}
-          />
+          {!hasStarted && <BigPlayButton onClick={togglePlay} />}
+          {isBuffering && isReady && <LoadingSpinner />}
+          {controlsVisible && hasStarted && canPlay && (
+            <>
+              <Seekbar
+                currentTime={currentTime}
+                duration={duration}
+                buffered={buffered}
+                onSeek={seekTo}
+              />
+              <Controls
+                playing={playing}
+                currentTime={currentTime}
+                duration={duration}
+                volume={volume}
+                muted={muted}
+                onPlayPause={togglePlay}
+                onVolumeChange={handleVolumeChange}
+                onToggleMute={toggleMute}
+                containerRef={containerRef}
+              />
+            </>
+          )}
         </>
       )}
     </div>

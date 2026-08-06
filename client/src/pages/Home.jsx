@@ -16,7 +16,7 @@ export default function Home() {
               Hi there! I'm Sofela
             </h1>
             <p className="font-novamono mt-6 w-full text-[13px] leading-relaxed text-white/80 md:mx-auto md:w-1/2 md:text-[16px]">
-              This where i document my journey into Filmmaking, visual storytelling and the craft of turning ideas into stories. I started this as a way to hold myself accountable to the process. If you're here, you're probably figuring something out too. Welcome
+              This is where I document my journey into Filmmaking, visual storytelling and the craft of turning ideas into stories. I started this as a way to hold myself accountable to the process. If you're here, you're probably figuring something out too. Welcome
             </p>
             <div className="mt-8">
               <Link
